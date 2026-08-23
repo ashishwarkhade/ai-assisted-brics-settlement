@@ -1,0 +1,109 @@
+{
+    "report_version": "8.12",
+    "economic": {
+        "transaction_value_usd": 122.96218400000001,
+        "network_cost_usd": 0.0008278177762426971,
+        "status": "REAL",
+        "source": "Base RPC + CoinGecko",
+        "confidence": 1.0
+    },
+    "economic_gate": {
+        "status": "PASSED",
+        "reason": null
+    },
+    "route_decisions": [
+        {
+            "route": "Bitcoin",
+            "asset": "BTC",
+            "network": "Bitcoin",
+            "status": "ELIGIBLE_DATA_INCOMPLETE",
+            "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+            "evidence": {
+                "value": "REQUIRES_JURISDICTION_REVIEW",
+                "source": "FATF",
+                "source_type": "REFERENCE",
+                "confidence": 0.7
+            },
+            "explanation": {
+                "route": "Bitcoin",
+                "asset": "BTC",
+                "network": "Bitcoin",
+                "decision": "ELIGIBLE_DATA_INCOMPLETE",
+                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "evidence": {
+                    "value": "REQUIRES_JURISDICTION_REVIEW",
+                    "source": "FATF",
+                    "source_type": "REFERENCE",
+                    "confidence": 0.7
+                },
+                "cost": {
+                    "value": 0.21521359999999998,
+                    "currency": "USD",
+                    "status": "REAL_ESTIMATE",
+                    "source": "mempool.space + CoinGecko",
+                    "confidence": 0.8
+                },
+                "network_data": {
+                    "status": "REAL_NETWORK_DATA"
+                }
+            }
+        },
+        {
+            "route": "Base",
+            "asset": "ETH",
+            "network": "Base",
+            "status": "ELIGIBLE_DATA_INCOMPLETE",
+            "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+            "evidence": {
+                "value": "REQUIRES_JURISDICTION_REVIEW",
+                "source": "FATF",
+                "source_type": "REFERENCE",
+                "confidence": 0.7
+            },
+            "explanation": {
+                "route": "Base",
+                "asset": "ETH",
+                "network": "Base",
+                "decision": "ELIGIBLE_DATA_INCOMPLETE",
+                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "evidence": {
+                    "value": "REQUIRES_JURISDICTION_REVIEW",
+                    "source": "FATF",
+                    "source_type": "REFERENCE",
+                    "confidence": 0.7
+                },
+                "cost": {
+                    "value": 0.0008278177762426971,
+                    "currency": "USD",
+                    "status": "REAL_OBSERVED",
+                    "source": "Base RPC + CoinGecko",
+                    "confidence": 1.0
+                },
+                "network_data": {
+                    "status": "REAL_NETWORK_DATA"
+                }
+            }
+        }
+    ],
+    "route_ranking": [],
+    "recommendation": null,
+    "recommendation_reason": "NO_ROUTE_HAS_SUFFICIENT_POLICY_AND_COST_DATA",
+    "confidence": {
+        "overall_confidence": 0.67,
+        "automation_readiness": "NOT_READY_FOR_AUTOMATED_RECOMMENDATION",
+        "decision_quality": "INSUFFICIENT_FOR_AUTOMATED_RECOMMENDATION",
+        "economic_confidence": 1.0,
+        "network_confidence": 1.0,
+        "compliance_confidence": 0.7,
+        "geopolitical_confidence": 0.5,
+        "risk_confidence": 0.0
+    },
+    "provenance": {
+        "economic_input": "REAL",
+        "economic_source": "Base RPC + CoinGecko",
+        "route_network_data": "REAL",
+        "route_risk": "TEST",
+        "compliance": "REFERENCE",
+        "geopolitical": "REFERENCE"
+    }
+}
