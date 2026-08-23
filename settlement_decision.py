@@ -19,24 +19,6 @@ economic = build_economic_intelligence()
 transaction_value_usd = economic["transaction_value_usd"]
 network_cost_usd = economic["network_cost_usd"]
 
-print("=== REAL ECONOMIC INPUT ===")
-print(
-    f"Transaction value: "
-    f"${transaction_value_usd:.2f}"
-)
-print(
-    f"Network cost: "
-    f"${network_cost_usd:.6f}"
-)
-print(
-    f"Source: "
-    f"{economic['source']}"
-)
-print(
-    f"Confidence: "
-    f"{economic['confidence']}"
-)
-
 
 # ============================================================
 # ECONOMIC GATE
@@ -53,30 +35,16 @@ else:
     economic_reason = None
 
 
-print()
-print("=== ECONOMIC GATE ===")
-print(f"Status: {economic_status}")
-
-if economic_reason:
-    print(f"Reason: {economic_reason}")
-
-
 # ============================================================
-# NORMALIZED ROUTE INPUT
+# ROUTE + POLICY INPUT
 # ============================================================
 
 normalized_routes = get_normalized_routes()
-
-
-# ============================================================
-# POLICY INTELLIGENCE
-# ============================================================
-
 policies = build_policy_intelligence()
 
 
 # ============================================================
-# BUILD ROUTE DECISIONS
+# DECISION ENGINE
 # ============================================================
 
 decisions = []
@@ -85,7 +53,6 @@ decisions = []
 for route_key, route in normalized_routes.items():
 
     network = route["network"]
-
     policy = policies.get(network)
 
 
@@ -99,6 +66,7 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "INVALID",
             "reason": "MISSING_ROUTE_POLICY",
+            "evidence": None,
         })
 
         continue
@@ -116,6 +84,7 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "REJECTED",
             "reason": "COMPLIANCE_BLOCKED",
+            "evidence": compliance,
         })
 
         continue
@@ -127,6 +96,7 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "ELIGIBLE_DATA_INCOMPLETE",
             "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+            "evidence": compliance,
         })
 
         continue
@@ -144,6 +114,7 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "REJECTED",
             "reason": "GEOPOLITICAL_RESTRICTION",
+            "evidence": geopolitical,
         })
 
         continue
@@ -155,6 +126,7 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "ELIGIBLE_DATA_INCOMPLETE",
             "reason": "GEOPOLITICAL_STATUS_NOT_ESTABLISHED",
+            "evidence": geopolitical,
         })
 
         continue
@@ -172,6 +144,7 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "ELIGIBLE_DATA_INCOMPLETE",
             "reason": "RISK_UNKNOWN",
+            "evidence": risk,
         })
 
         continue
@@ -183,16 +156,29 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "REJECTED",
             "reason": "RISK_LIMIT_EXCEEDED",
+            "evidence": risk,
         })
 
         continue
 
 
     # --------------------------------------------------------
-    # Economic route cost
+    # Route cost
     # --------------------------------------------------------
 
     cost = route["cost"]
+
+    if cost["value"] is None:
+
+        decisions.append({
+            "route": route,
+            "status": "ELIGIBLE_DATA_INCOMPLETE",
+            "reason": "ROUTE_COST_UNKNOWN",
+            "evidence": cost,
+        })
+
+        continue
+
 
     if cost["status"] in (
         "NOT_CALCULATED",
@@ -203,17 +189,7 @@ for route_key, route in normalized_routes.items():
             "route": route,
             "status": "ELIGIBLE_DATA_INCOMPLETE",
             "reason": "ROUTE_COST_UNKNOWN",
-        })
-
-        continue
-
-
-    if cost["value"] is None:
-
-        decisions.append({
-            "route": route,
-            "status": "ELIGIBLE_DATA_INCOMPLETE",
-            "reason": "ROUTE_COST_UNKNOWN",
+            "evidence": cost,
         })
 
         continue
@@ -227,11 +203,109 @@ for route_key, route in normalized_routes.items():
         "route": route,
         "status": "ELIGIBLE",
         "reason": None,
+        "evidence": {
+            "source": "COMBINED_ROUTE_AND_POLICY_DATA",
+            "type": "REAL_AND_REFERENCE",
+            "confidence": min(
+                cost["confidence"],
+                risk["confidence"],
+                compliance["confidence"],
+                geopolitical["confidence"],
+            ),
+        },
     })
 
 
 # ============================================================
-# DISPLAY DECISIONS
+# RANK ELIGIBLE ROUTES
+# ============================================================
+
+rankable_routes = [
+
+    decision
+
+    for decision in decisions
+
+    if decision["status"] == "ELIGIBLE"
+
+    and decision["route"]["cost"]["value"] is not None
+]
+
+
+ranked_routes = sorted(
+    rankable_routes,
+    key=lambda decision:
+        decision["route"]["cost"]["value"]
+)
+
+
+# ============================================================
+# RECOMMENDATION
+# ============================================================
+
+if economic_status != "PASSED":
+
+    recommendation = None
+    recommendation_reason = economic_reason
+
+elif not ranked_routes:
+
+    recommendation = None
+    recommendation_reason = (
+        "NO_ROUTE_HAS_SUFFICIENT_POLICY_AND_COST_DATA"
+    )
+
+else:
+
+    recommendation = ranked_routes[0]["route"]
+    recommendation_reason = None
+
+
+# ============================================================
+# DISPLAY
+# ============================================================
+
+print("=== REAL ECONOMIC INPUT ===")
+
+print(
+    f"Transaction value: "
+    f"${transaction_value_usd:.2f}"
+)
+
+print(
+    f"Network cost: "
+    f"${network_cost_usd:.6f}"
+)
+
+print(
+    f"Source: "
+    f"{economic['source']}"
+)
+
+print(
+    f"Confidence: "
+    f"{economic['confidence']}"
+)
+
+
+print()
+print("=== ECONOMIC GATE ===")
+
+print(
+    f"Status: "
+    f"{economic_status}"
+)
+
+if economic_reason:
+
+    print(
+        f"Reason: "
+        f"{economic_reason}"
+    )
+
+
+# ============================================================
+# SETTLEMENT DECISION
 # ============================================================
 
 print()
@@ -257,28 +331,35 @@ for decision in decisions:
             f"{decision['reason']}"
         )
 
+    evidence = decision["evidence"]
+
+    if evidence:
+
+        print(
+            f"  Evidence source: "
+            f"{evidence.get('source', 'UNKNOWN')}"
+        )
+
+        print(
+            f"  Evidence type: "
+            f"{evidence.get('source_type', evidence.get('type', 'UNKNOWN'))}"
+        )
+
+        print(
+            f"  Evidence confidence: "
+            f"{evidence.get('confidence', 0.0)}"
+        )
+
 
 # ============================================================
-# ECONOMICALLY RANKABLE ROUTES
+# ROUTE RANKING
 # ============================================================
-
-rankable_routes = [
-
-    decision["route"]
-
-    for decision in decisions
-
-    if decision["status"] == "ELIGIBLE"
-
-    and decision["route"]["cost"]["value"] is not None
-]
-
 
 print()
 print("=== ROUTE RANKING ===")
 
 
-if not rankable_routes:
+if not ranked_routes:
 
     print(
         "No route has sufficient "
@@ -287,12 +368,9 @@ if not rankable_routes:
 
 else:
 
-    ranked_routes = sorted(
-        rankable_routes,
-        key=lambda route: route["cost"]["value"]
-    )
+    for decision in ranked_routes:
 
-    for route in ranked_routes:
+        route = decision["route"]
 
         print(
             f"{route['route']} | "
@@ -310,25 +388,21 @@ print()
 print("=== RECOMMENDATION ===")
 
 
-if not rankable_routes:
+if recommendation is None:
 
     print("NO_RECOMMENDATION")
+
     print(
-        "Reason: "
-        "NO_ROUTE_HAS_SUFFICIENT_POLICY_AND_COST_DATA"
+        f"Reason: "
+        f"{recommendation_reason}"
     )
 
 else:
 
-    best_route = min(
-        rankable_routes,
-        key=lambda route: route["cost"]["value"]
-    )
-
     print(
-        f"{best_route['route']} | "
-        f"{best_route['asset']} / "
-        f"{best_route['network']}"
+        f"{recommendation['route']} | "
+        f"{recommendation['asset']} / "
+        f"{recommendation['network']}"
     )
 
 
@@ -351,17 +425,8 @@ print(
 
 print("Route network data: REAL")
 
-print(
-    "Route risk: "
-    "TEST"
-)
+print("Route risk: TEST")
 
-print(
-    "Compliance: "
-    "REFERENCE"
-)
+print("Compliance: REFERENCE")
 
-print(
-    "Geopolitical: "
-    "REFERENCE"
-)
+print("Geopolitical: REFERENCE")
