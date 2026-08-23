@@ -1,3 +1,6 @@
+import json
+from datetime import datetime, timezone
+
 from normalized_routes import get_normalized_routes
 from policy_intelligence import build_policy_intelligence
 from economic_intelligence import build_economic_intelligence
@@ -9,9 +12,11 @@ from economic_intelligence import build_economic_intelligence
 
 MAX_RISK = 50
 
+AUDIT_FILE = "audit/settlement_audit.json"
+
 
 # ============================================================
-# BUILD AUDIT RECORD
+# BUILD SETTLEMENT AUDIT
 # ============================================================
 
 def build_settlement_audit():
@@ -53,7 +58,6 @@ def build_settlement_audit():
     for route_key, route in normalized_routes.items():
 
         network = route["network"]
-
         policy = policies.get(network)
 
 
@@ -247,25 +251,31 @@ def build_settlement_audit():
     # ROUTE RANKING
     # ========================================================
 
-    rankable_routes = [
+    rankable_routes = []
 
-        decision
+    for decision in decisions:
 
-        for decision in decisions
+        if decision["status"] != "ELIGIBLE":
+            continue
 
-        if decision["status"] == "ELIGIBLE"
+        route = next(
+            route
+            for route in normalized_routes.values()
+            if route["route"] == decision["route"]
+        )
 
-        and decision["route"] is not None
-    ]
+        if route["cost"]["value"] is None:
+            continue
+
+        rankable_routes.append({
+            "decision": decision,
+            "route": route,
+        })
 
 
     ranked_routes = sorted(
         rankable_routes,
-        key=lambda decision: next(
-            route["cost"]["value"]
-            for route in normalized_routes.values()
-            if route["route"] == decision["route"]
-        )
+        key=lambda item: item["route"]["cost"]["value"],
     )
 
 
@@ -276,28 +286,34 @@ def build_settlement_audit():
     if economic_status != "PASSED":
 
         recommendation = None
-
         recommendation_reason = economic_reason
 
     elif not ranked_routes:
 
         recommendation = None
-
         recommendation_reason = (
             "NO_ROUTE_HAS_SUFFICIENT_POLICY_AND_COST_DATA"
         )
 
     else:
 
-        best = ranked_routes[0]
+        best = ranked_routes[0]["route"]
 
         recommendation = {
             "route": best["route"],
             "asset": best["asset"],
             "network": best["network"],
+            "cost_usd": best["cost"]["value"],
         }
 
         recommendation_reason = None
+
+
+    # ========================================================
+    # TIMESTAMP
+    # ========================================================
+
+    generated_at = datetime.now(timezone.utc).isoformat()
 
 
     # ========================================================
@@ -305,6 +321,10 @@ def build_settlement_audit():
     # ========================================================
 
     audit_record = {
+
+        "audit_version": "8.6",
+
+        "generated_at_utc": generated_at,
 
         "economic": {
             "transaction_value_usd": transaction_value_usd,
@@ -323,11 +343,15 @@ def build_settlement_audit():
 
         "route_ranking": [
             {
-                "route": decision["route"],
-                "asset": decision["asset"],
-                "network": decision["network"],
+                "route": item["route"]["route"],
+                "asset": item["route"]["asset"],
+                "network": item["route"]["network"],
+                "cost_usd": item["route"]["cost"]["value"],
+                "cost_status": item["route"]["cost"]["status"],
+                "cost_source": item["route"]["cost"]["source"],
+                "cost_confidence": item["route"]["cost"]["confidence"],
             }
-            for decision in ranked_routes
+            for item in ranked_routes
         ],
 
         "recommendation": recommendation,
@@ -348,12 +372,36 @@ def build_settlement_audit():
 
 
 # ============================================================
-# DISPLAY AUDIT RECORD
+# SAVE AUDIT RECORD
 # ============================================================
 
-if __name__ == "__main__":
+def save_audit_record(audit_record):
 
-    audit = build_settlement_audit()
+    import os
+
+    os.makedirs(
+        "audit",
+        exist_ok=True,
+    )
+
+    with open(
+        AUDIT_FILE,
+        "w",
+        encoding="utf-8",
+    ) as file:
+
+        json.dump(
+            audit_record,
+            file,
+            indent=4,
+        )
+
+
+# ============================================================
+# DISPLAY
+# ============================================================
+
+def display_audit(audit):
 
     economic = audit["economic"]
 
@@ -403,7 +451,7 @@ if __name__ == "__main__":
 
 
     # --------------------------------------------------------
-    # Decisions
+    # Route decisions
     # --------------------------------------------------------
 
     print()
@@ -464,19 +512,11 @@ if __name__ == "__main__":
 
         for ranked in audit["route_ranking"]:
 
-            route_name = ranked["route"]
-
-            route = next(
-                route
-                for route in get_normalized_routes().values()
-                if route["route"] == route_name
-            )
-
             print(
                 f"{ranked['route']} | "
                 f"{ranked['asset']} / "
                 f"{ranked['network']} | "
-                f"${route['cost']['value']:.6f}"
+                f"${ranked['cost_usd']:.6f}"
             )
 
 
@@ -545,3 +585,34 @@ if __name__ == "__main__":
         f"Geopolitical: "
         f"{provenance['geopolitical']}"
     )
+
+    print()
+    print("=== AUDIT ARTIFACT ===")
+
+    print(
+        f"Version: "
+        f"{audit['audit_version']}"
+    )
+
+    print(
+        f"Generated: "
+        f"{audit['generated_at_utc']}"
+    )
+
+    print(
+        f"File: "
+        f"{AUDIT_FILE}"
+    )
+
+
+# ============================================================
+# MAIN
+# ============================================================
+
+if __name__ == "__main__":
+
+    audit = build_settlement_audit()
+
+    save_audit_record(audit)
+
+    display_audit(audit)
