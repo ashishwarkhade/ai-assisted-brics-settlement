@@ -37,45 +37,21 @@ def classify_confidence(confidence):
 
 
 # ============================================================
-# BUILD DECISION CONFIDENCE
+# EXTRACT POLICY CONFIDENCE
 # ============================================================
 
-def build_decision_confidence(audit):
+def extract_policy_confidence(
+    route_decisions,
+    evidence_name,
+):
 
-    economic = audit["economic"]
-
-    provenance = audit["provenance"]
-
-    economic_confidence = economic.get(
-        "confidence",
-        0.0,
-    )
-
-    # --------------------------------------------------------
-    # Provenance confidence
-    # --------------------------------------------------------
-
-    network_confidence = 1.0
-
-    compliance_confidence = 0.0
-
-    geopolitical_confidence = 0.0
-
-    risk_confidence = 0.0
-
-    # --------------------------------------------------------
-    # Inspect route decisions
-    # --------------------------------------------------------
-
-    route_decisions = audit.get(
-        "route_decisions",
-        [],
-    )
+    confidence = 0.0
 
     for decision in route_decisions:
 
         evidence = decision.get(
-            "evidence"
+            "evidence",
+            {}
         )
 
         if not evidence:
@@ -85,56 +61,149 @@ def build_decision_confidence(audit):
             "source_type"
         )
 
-        confidence = evidence.get(
-            "confidence",
-            0.0,
+        if source_type != "REFERENCE":
+            continue
+
+        value = evidence.get(
+            "value"
         )
 
-        if source_type == "REFERENCE":
+        # ----------------------------------------------------
+        # Compliance evidence
+        # ----------------------------------------------------
 
-            compliance_confidence = max(
-                compliance_confidence,
-                confidence,
-            )
+        if evidence_name == "compliance":
 
-    # --------------------------------------------------------
-    # Existing provenance tells us risk quality
-    # --------------------------------------------------------
+            if value is not None:
 
-    if provenance.get("route_risk") == "REAL":
+                confidence = max(
+                    confidence,
+                    evidence.get(
+                        "confidence",
+                        0.0
+                    )
+                )
 
-        risk_confidence = 1.0
+        # ----------------------------------------------------
+        # Geopolitical evidence
+        # ----------------------------------------------------
 
-    elif provenance.get("route_risk") == "REFERENCE":
+        elif evidence_name == "geopolitical":
 
-        risk_confidence = 0.5
+            if value is not None:
 
-    else:
+                confidence = max(
+                    confidence,
+                    evidence.get(
+                        "confidence",
+                        0.0
+                    )
+                )
 
-        risk_confidence = 0.0
+    return confidence
 
-    # --------------------------------------------------------
-    # Geopolitical provenance
-    # --------------------------------------------------------
 
-    if provenance.get("geopolitical") == "REAL":
+# ============================================================
+# PROVENANCE CONFIDENCE
+# ============================================================
 
-        geopolitical_confidence = 1.0
+def provenance_confidence(
+    provenance,
+    field,
+):
 
-    elif provenance.get("geopolitical") == "REFERENCE":
+    value = provenance.get(field)
 
-        geopolitical_confidence = 0.5
+    if value == "REAL":
+        return 1.0
 
-    else:
+    if value == "REFERENCE":
+        return 0.5
 
-        geopolitical_confidence = 0.0
+    if value == "TEST":
+        return 0.0
 
-    # --------------------------------------------------------
-    # Overall confidence
+    return 0.0
+
+
+# ============================================================
+# BUILD DECISION CONFIDENCE
+# ============================================================
+
+def build_decision_confidence(audit):
+
+    economic = audit.get(
+        "economic",
+        {}
+    )
+
+    provenance = audit.get(
+        "provenance",
+        {}
+    )
+
+    route_decisions = audit.get(
+        "route_decisions",
+        []
+    )
+
+    # ========================================================
+    # ECONOMIC
+    # ========================================================
+
+    economic_confidence = economic.get(
+        "confidence",
+        0.0
+    )
+
+    # ========================================================
+    # NETWORK
+    # ========================================================
+
+    network_confidence = 1.0
+
+    # ========================================================
+    # COMPLIANCE
+    # ========================================================
+
+    compliance_confidence = (
+        extract_policy_confidence(
+            route_decisions,
+            "compliance"
+        )
+    )
+
+    # ========================================================
+    # GEOPOLITICAL
+    # ========================================================
+
+    geopolitical_confidence = (
+        provenance_confidence(
+            provenance,
+            "geopolitical"
+        )
+    )
+
+    # ========================================================
+    # RISK
+    # ========================================================
+
+    risk_confidence = (
+        provenance_confidence(
+            provenance,
+            "route_risk"
+        )
+    )
+
+    # ========================================================
+    # OVERALL CONFIDENCE
     #
-    # Conservative approach:
-    # weakest critical data determines confidence.
-    # --------------------------------------------------------
+    # Conservative rule:
+    # critical policy dimensions limit confidence.
+    #
+    # This prevents strong economic data from hiding
+    # weak policy intelligence.
+    # ========================================================
 
     overall_confidence = min(
         economic_confidence,
@@ -144,13 +213,34 @@ def build_decision_confidence(audit):
         risk_confidence,
     )
 
-    # --------------------------------------------------------
-    # Decision quality
-    # --------------------------------------------------------
+    # ========================================================
+    # AUTOMATION READINESS
+    # ========================================================
 
-    if overall_confidence >= 0.90:
+    if (
+        overall_confidence >= 0.90
+        and compliance_confidence >= 0.90
+        and geopolitical_confidence >= 0.90
+        and risk_confidence >= 0.90
+    ):
 
-        decision_quality = "SUFFICIENT_FOR_AUTOMATED_RECOMMENDATION"
+        automation_readiness = "READY"
+
+    else:
+
+        automation_readiness = (
+            "NOT_READY_FOR_AUTOMATED_RECOMMENDATION"
+        )
+
+    # ========================================================
+    # DECISION QUALITY
+    # ========================================================
+
+    if automation_readiness == "READY":
+
+        decision_quality = (
+            "SUFFICIENT_FOR_AUTOMATED_RECOMMENDATION"
+        )
 
     elif overall_confidence >= 0.70:
 
@@ -164,9 +254,9 @@ def build_decision_confidence(audit):
             "INSUFFICIENT_FOR_AUTOMATED_RECOMMENDATION"
         )
 
-    # --------------------------------------------------------
-    # Overall classification
-    # --------------------------------------------------------
+    # ========================================================
+    # OVERALL STATUS
+    # ========================================================
 
     if overall_confidence >= 0.90:
 
@@ -184,13 +274,31 @@ def build_decision_confidence(audit):
 
         overall_status = "INCOMPLETE"
 
+    # ========================================================
+    # RESULT
+    # ========================================================
+
     return {
-        "overall_confidence": overall_confidence,
-        "overall_status": overall_status,
+
+        "overall_confidence":
+            overall_confidence,
+
+        "overall_status":
+            overall_status,
+
+        "automation_readiness":
+            automation_readiness,
 
         "economic": {
-            "status": economic.get("status"),
-            "confidence": economic_confidence,
+
+            "status":
+                economic.get(
+                    "status"
+                ),
+
+            "confidence":
+                economic_confidence,
+
             "classification":
                 classify_confidence(
                     economic_confidence
@@ -198,10 +306,15 @@ def build_decision_confidence(audit):
         },
 
         "network": {
-            "status": provenance.get(
-                "route_network_data"
-            ),
-            "confidence": network_confidence,
+
+            "status":
+                provenance.get(
+                    "route_network_data"
+                ),
+
+            "confidence":
+                network_confidence,
+
             "classification":
                 classify_confidence(
                     network_confidence
@@ -209,10 +322,15 @@ def build_decision_confidence(audit):
         },
 
         "compliance": {
-            "status": provenance.get(
-                "compliance"
-            ),
-            "confidence": compliance_confidence,
+
+            "status":
+                provenance.get(
+                    "compliance"
+                ),
+
+            "confidence":
+                compliance_confidence,
+
             "classification":
                 classify_confidence(
                     compliance_confidence
@@ -220,10 +338,15 @@ def build_decision_confidence(audit):
         },
 
         "geopolitical": {
-            "status": provenance.get(
-                "geopolitical"
-            ),
-            "confidence": geopolitical_confidence,
+
+            "status":
+                provenance.get(
+                    "geopolitical"
+                ),
+
+            "confidence":
+                geopolitical_confidence,
+
             "classification":
                 classify_confidence(
                     geopolitical_confidence
@@ -231,17 +354,23 @@ def build_decision_confidence(audit):
         },
 
         "risk": {
-            "status": provenance.get(
-                "route_risk"
-            ),
-            "confidence": risk_confidence,
+
+            "status":
+                provenance.get(
+                    "route_risk"
+                ),
+
+            "confidence":
+                risk_confidence,
+
             "classification":
                 classify_confidence(
                     risk_confidence
                 ),
         },
 
-        "decision_quality": decision_quality,
+        "decision_quality":
+            decision_quality,
     }
 
 
@@ -249,9 +378,13 @@ def build_decision_confidence(audit):
 # DISPLAY
 # ============================================================
 
-def print_decision_confidence(confidence):
+def print_decision_confidence(
+    confidence
+):
 
-    print("=== DECISION CONFIDENCE ===")
+    print(
+        "=== DECISION CONFIDENCE ==="
+    )
 
     print()
 
@@ -267,13 +400,18 @@ def print_decision_confidence(confidence):
 
     print()
 
-    print("Economic data")
-    print("-" * 55)
+    # --------------------------------------------------------
+    # Economic
+    # --------------------------------------------------------
 
     economic = confidence["economic"]
 
+    print("Economic data")
+    print("-" * 55)
+
     print(
-        f"Status: {economic['status']}"
+        f"Status: "
+        f"{economic['status']}"
     )
 
     print(
@@ -288,13 +426,18 @@ def print_decision_confidence(confidence):
 
     print()
 
-    print("Network data")
-    print("-" * 55)
+    # --------------------------------------------------------
+    # Network
+    # --------------------------------------------------------
 
     network = confidence["network"]
 
+    print("Network data")
+    print("-" * 55)
+
     print(
-        f"Status: {network['status']}"
+        f"Status: "
+        f"{network['status']}"
     )
 
     print(
@@ -309,13 +452,18 @@ def print_decision_confidence(confidence):
 
     print()
 
-    print("Compliance data")
-    print("-" * 55)
+    # --------------------------------------------------------
+    # Compliance
+    # --------------------------------------------------------
 
     compliance = confidence["compliance"]
 
+    print("Compliance data")
+    print("-" * 55)
+
     print(
-        f"Status: {compliance['status']}"
+        f"Status: "
+        f"{compliance['status']}"
     )
 
     print(
@@ -330,13 +478,18 @@ def print_decision_confidence(confidence):
 
     print()
 
-    print("Geopolitical data")
-    print("-" * 55)
+    # --------------------------------------------------------
+    # Geopolitical
+    # --------------------------------------------------------
 
     geopolitical = confidence["geopolitical"]
 
+    print("Geopolitical data")
+    print("-" * 55)
+
     print(
-        f"Status: {geopolitical['status']}"
+        f"Status: "
+        f"{geopolitical['status']}"
     )
 
     print(
@@ -351,13 +504,18 @@ def print_decision_confidence(confidence):
 
     print()
 
-    print("Risk data")
-    print("-" * 55)
+    # --------------------------------------------------------
+    # Risk
+    # --------------------------------------------------------
 
     risk = confidence["risk"]
 
+    print("Risk data")
+    print("-" * 55)
+
     print(
-        f"Status: {risk['status']}"
+        f"Status: "
+        f"{risk['status']}"
     )
 
     print(
@@ -372,11 +530,32 @@ def print_decision_confidence(confidence):
 
     print()
 
+    # --------------------------------------------------------
+    # Automation readiness
+    # --------------------------------------------------------
+
+    print("Automation readiness")
+    print("-" * 55)
+
+    print(
+        confidence[
+            "automation_readiness"
+        ]
+    )
+
+    print()
+
+    # --------------------------------------------------------
+    # Decision quality
+    # --------------------------------------------------------
+
     print("Decision quality")
     print("-" * 55)
 
     print(
-        confidence["decision_quality"]
+        confidence[
+            "decision_quality"
+        ]
     )
 
 
