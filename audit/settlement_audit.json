@@ -1,9 +1,9 @@
 {
-    "audit_version": "8.6",
-    "generated_at_utc": "2026-08-23T10:14:02.548790+00:00",
+    "audit_version": "8.7",
+    "generated_at_utc": "2026-08-23T10:37:41.505412+00:00",
     "economic": {
-        "transaction_value_usd": 122.86242000000001,
-        "network_cost_usd": 0.0008271461354996449,
+        "transaction_value_usd": 122.96218400000001,
+        "network_cost_usd": 0.0008278177762426971,
         "status": "REAL",
         "source": "Base RPC + CoinGecko",
         "confidence": 1.0
@@ -24,6 +24,29 @@
                 "source": "FATF",
                 "source_type": "REFERENCE",
                 "confidence": 0.7
+            },
+            "explanation": {
+                "route": "Bitcoin",
+                "asset": "BTC",
+                "network": "Bitcoin",
+                "decision": "ELIGIBLE_DATA_INCOMPLETE",
+                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "evidence": {
+                    "value": "REQUIRES_JURISDICTION_REVIEW",
+                    "source": "FATF",
+                    "source_type": "REFERENCE",
+                    "confidence": 0.7
+                },
+                "cost": {
+                    "value": 0.21521359999999998,
+                    "currency": "USD",
+                    "status": "REAL_ESTIMATE",
+                    "source": "mempool.space + CoinGecko",
+                    "confidence": 0.8
+                },
+                "network_data": {
+                    "status": "REAL_NETWORK_DATA"
+                }
             }
         },
         {
@@ -37,6 +60,29 @@
                 "source": "FATF",
                 "source_type": "REFERENCE",
                 "confidence": 0.7
+            },
+            "explanation": {
+                "route": "Base",
+                "asset": "ETH",
+                "network": "Base",
+                "decision": "ELIGIBLE_DATA_INCOMPLETE",
+                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "evidence": {
+                    "value": "REQUIRES_JURISDICTION_REVIEW",
+                    "source": "FATF",
+                    "source_type": "REFERENCE",
+                    "confidence": 0.7
+                },
+                "cost": {
+                    "value": 0.0008278177762426971,
+                    "currency": "USD",
+                    "status": "REAL_OBSERVED",
+                    "source": "Base RPC + CoinGecko",
+                    "confidence": 1.0
+                },
+                "network_data": {
+                    "status": "REAL_NETWORK_DATA"
+                }
             }
         }
     ],
