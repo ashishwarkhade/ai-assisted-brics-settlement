@@ -19,24 +19,19 @@ economic = build_economic_intelligence()
 transaction_value_usd = economic["transaction_value_usd"]
 network_cost_usd = economic["network_cost_usd"]
 
-
 print("=== REAL ECONOMIC INPUT ===")
-
 print(
     f"Transaction value: "
     f"${transaction_value_usd:.2f}"
 )
-
 print(
     f"Network cost: "
     f"${network_cost_usd:.6f}"
 )
-
 print(
     f"Source: "
     f"{economic['source']}"
 )
-
 print(
     f"Confidence: "
     f"{economic['confidence']}"
@@ -63,11 +58,7 @@ print("=== ECONOMIC GATE ===")
 print(f"Status: {economic_status}")
 
 if economic_reason:
-
-    print(
-        f"Reason: "
-        f"{economic_reason}"
-    )
+    print(f"Reason: {economic_reason}")
 
 
 # ============================================================
@@ -81,7 +72,7 @@ normalized_routes = get_normalized_routes()
 # POLICY INTELLIGENCE
 # ============================================================
 
-policy_intelligence = build_policy_intelligence()
+policies = build_policy_intelligence()
 
 
 # ============================================================
@@ -95,7 +86,7 @@ for route_key, route in normalized_routes.items():
 
     network = route["network"]
 
-    policy = policy_intelligence.get(network)
+    policy = policies.get(network)
 
 
     # --------------------------------------------------------
@@ -117,9 +108,9 @@ for route_key, route in normalized_routes.items():
     # Compliance
     # --------------------------------------------------------
 
-    compliance = policy["compliance"]["value"]
+    compliance = policy["compliance"]
 
-    if compliance == "BLOCKED":
+    if compliance["value"] == "BLOCKED":
 
         decisions.append({
             "route": route,
@@ -130,26 +121,24 @@ for route_key, route in normalized_routes.items():
         continue
 
 
-    # --------------------------------------------------------
-    # Geopolitical
-    # --------------------------------------------------------
-
-    geopolitical_status = (
-        policy["geopolitical_status"]["value"]
-    )
-
-    if geopolitical_status == "UNKNOWN":
+    if compliance["value"] != "ALLOWED":
 
         decisions.append({
             "route": route,
-            "status": "INVALID",
-            "reason": "GEOPOLITICAL_STATUS_UNKNOWN",
+            "status": "ELIGIBLE_DATA_INCOMPLETE",
+            "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
         })
 
         continue
 
 
-    if geopolitical_status != "PERMITTED":
+    # --------------------------------------------------------
+    # Geopolitical
+    # --------------------------------------------------------
+
+    geopolitical = policy["geopolitical_status"]
+
+    if geopolitical["value"] == "RESTRICTED":
 
         decisions.append({
             "route": route,
@@ -160,13 +149,35 @@ for route_key, route in normalized_routes.items():
         continue
 
 
+    if geopolitical["value"] != "PERMITTED":
+
+        decisions.append({
+            "route": route,
+            "status": "ELIGIBLE_DATA_INCOMPLETE",
+            "reason": "GEOPOLITICAL_STATUS_NOT_ESTABLISHED",
+        })
+
+        continue
+
+
     # --------------------------------------------------------
     # Risk
     # --------------------------------------------------------
 
-    risk = policy["risk"]["value"]
+    risk = policy["risk"]
 
-    if risk > MAX_RISK:
+    if risk["value"] is None:
+
+        decisions.append({
+            "route": route,
+            "status": "ELIGIBLE_DATA_INCOMPLETE",
+            "reason": "RISK_UNKNOWN",
+        })
+
+        continue
+
+
+    if risk["value"] > MAX_RISK:
 
         decisions.append({
             "route": route,
@@ -187,6 +198,17 @@ for route_key, route in normalized_routes.items():
         "NOT_CALCULATED",
         "UNKNOWN",
     ):
+
+        decisions.append({
+            "route": route,
+            "status": "ELIGIBLE_DATA_INCOMPLETE",
+            "reason": "ROUTE_COST_UNKNOWN",
+        })
+
+        continue
+
+
+    if cost["value"] is None:
 
         decisions.append({
             "route": route,
@@ -249,7 +271,6 @@ rankable_routes = [
     if decision["status"] == "ELIGIBLE"
 
     and decision["route"]["cost"]["value"] is not None
-
 ]
 
 
@@ -261,7 +282,7 @@ if not rankable_routes:
 
     print(
         "No route has sufficient "
-        "real economic data."
+        "policy and economic data."
     )
 
 else:
@@ -292,23 +313,22 @@ print("=== RECOMMENDATION ===")
 if not rankable_routes:
 
     print("NO_RECOMMENDATION")
-
     print(
         "Reason: "
-        "NO_ROUTE_HAS_SUFFICIENT_REAL_COST_DATA"
+        "NO_ROUTE_HAS_SUFFICIENT_POLICY_AND_COST_DATA"
     )
 
 else:
 
-    recommended = sorted(
+    best_route = min(
         rankable_routes,
         key=lambda route: route["cost"]["value"]
-    )[0]
+    )
 
     print(
-        f"{recommended['route']} | "
-        f"{recommended['asset']} / "
-        f"{recommended['network']}"
+        f"{best_route['route']} | "
+        f"{best_route['asset']} / "
+        f"{best_route['network']}"
     )
 
 
@@ -319,7 +339,10 @@ else:
 print()
 print("=== DATA PROVENANCE ===")
 
-print("Economic input: REAL")
+print(
+    f"Economic input: "
+    f"{economic['status']}"
+)
 
 print(
     f"Economic source: "
@@ -328,6 +351,17 @@ print(
 
 print("Route network data: REAL")
 
-print("Route risk: TEST_DATA")
-print("Compliance: TEST_RULE")
-print("Geopolitical: TEST_RULE")
+print(
+    "Route risk: "
+    "TEST"
+)
+
+print(
+    "Compliance: "
+    "REFERENCE"
+)
+
+print(
+    "Geopolitical: "
+    "REFERENCE"
+)

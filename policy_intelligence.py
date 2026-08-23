@@ -1,7 +1,10 @@
 from data_provenance import add_provenance
+from policy_source import build_policy_source_data
 
 
 def build_policy_intelligence():
+
+    source_data = build_policy_source_data()
 
     return {
         "Bitcoin": {
@@ -12,19 +15,10 @@ def build_policy_intelligence():
                 0.0,
             ),
 
-            "compliance": add_provenance(
-                "ALLOWED",
-                "TEST_POLICY",
-                "TEST",
-                0.0,
-            ),
+            "compliance": source_data["Bitcoin"]["compliance"],
 
-            "geopolitical_status": add_provenance(
-                "PERMITTED",
-                "TEST_POLICY",
-                "TEST",
-                0.0,
-            ),
+            "geopolitical_status":
+                source_data["Bitcoin"]["geopolitical_status"],
 
             "time_minutes": add_provenance(
                 10,
@@ -42,19 +36,10 @@ def build_policy_intelligence():
                 0.0,
             ),
 
-            "compliance": add_provenance(
-                "ALLOWED",
-                "TEST_POLICY",
-                "TEST",
-                0.0,
-            ),
+            "compliance": source_data["Base"]["compliance"],
 
-            "geopolitical_status": add_provenance(
-                "RESTRICTED",
-                "TEST_POLICY",
-                "TEST",
-                0.0,
-            ),
+            "geopolitical_status":
+                source_data["Base"]["geopolitical_status"],
 
             "time_minutes": add_provenance(
                 2,
