@@ -32,10 +32,10 @@ def build_transaction_intelligence():
     total_fee_eth = total_fee_wei / 10**18
 
     # Calculate transaction value in USD
-    value_usd = transaction["value_eth"] * market["price"]
+    value_usd = transaction["value_eth"] * market["value"]
 
     # Calculate network cost in USD
-    network_cost_usd = total_fee_eth * market["price"]
+    network_cost_usd = total_fee_eth * market["value"]
 
     return {
         "type": "transaction",
@@ -55,7 +55,7 @@ def build_transaction_intelligence():
         "network_cost_eth": total_fee_eth,
         "network_cost_usd": network_cost_usd,
 
-        "market_price_usd": market["price"],
+        "market_price_usd": market["value"],
     }
 
 

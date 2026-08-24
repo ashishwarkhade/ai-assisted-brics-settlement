@@ -2,6 +2,18 @@ from real_route_source import get_real_eth_price
 from real_transaction import get_transaction_facts
 
 
+def get_eth_price():
+    """
+    Compatibility wrapper for the existing
+    transaction intelligence layer.
+
+    Keeps market_data.py as the abstraction layer
+    while using the real ETH/USD source.
+    """
+
+    return get_real_eth_price()
+
+
 def calculate_usd_value(eth_amount, eth_price):
     return eth_amount * eth_price
 
@@ -12,7 +24,7 @@ if __name__ == "__main__":
     transaction = get_transaction_facts()
 
     # Get real market data
-    market = get_real_eth_price()
+    market = get_eth_price()
 
     # Make sure market data is actually available
     if market["status"] != "REAL":

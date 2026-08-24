@@ -1,319 +1,354 @@
-import json
+"""
+Settlement Decision Explanation
 
+Purpose:
+    Build a human-readable explanation for a deterministic
+    settlement route decision.
 
-AUDIT_FILE = "audit/settlement_audit.json"
+Important:
+
+    This module explains an existing decision.
+
+    It does NOT:
+        - make a settlement decision
+        - change eligibility
+        - interpret regulatory evidence
+        - override the deterministic decision engine
+
+The explanation layer must support both:
+
+    Phase 8 policy evidence
+        value / source / source_type / confidence
+
+and
+
+    Phase 9 regulatory evidence
+        jurisdiction / asset / activity / status /
+        source / source_type / confidence / evidence_text
+"""
 
 
 # ============================================================
-# LOAD AUDIT
-# ============================================================
-
-def load_settlement_audit():
-
-    with open(AUDIT_FILE, "r") as file:
-        return json.load(file)
-
-
-# ============================================================
-# BUILD STRUCTURED DECISION EXPLANATION
+# BUILD DECISION EXPLANATION
 # ============================================================
 
 def build_decision_explanation(decision):
+    """
+    Build a human-readable explanation for one route decision.
+
+    The decision itself remains authoritative.
+
+    This function only explains the already-determined
+    status and reason.
+    """
 
     route = decision["route"]
 
+    route_name = route.get(
+        "route",
+        "UNKNOWN",
+    )
+
+    asset = route.get(
+        "asset",
+        "UNKNOWN",
+    )
+
+    network = route.get(
+        "network",
+        "UNKNOWN",
+    )
+
+    status = decision.get(
+        "status",
+        "UNKNOWN",
+    )
+
+    reason = decision.get(
+        "reason",
+        None,
+    )
+
     explanation = {
-        "route": route["route"],
-        "asset": route["asset"],
-        "network": route["network"],
-        "decision": decision["status"],
-        "reason": decision["reason"],
+        "route": route_name,
+        "asset": asset,
+        "network": network,
+        "status": status,
+        "reason": reason,
     }
 
+
+    # ========================================================
+    # NO EVIDENCE
+    # ========================================================
+
+    if "evidence" not in decision:
+
+        explanation["evidence"] = None
+
+        explanation["text"] = (
+            f"Route {route_name} "
+            f"({asset} / {network}) "
+            f"has status {status}."
+        )
+
+        if reason:
+
+            explanation["text"] += (
+                f" Reason: {reason}."
+            )
+
+        return explanation
+
+
+    # ========================================================
+    # EVIDENCE
+    # ========================================================
+
+    evidence = decision["evidence"]
+
+
     # --------------------------------------------------------
-    # Evidence
+    # Common evidence fields
     # --------------------------------------------------------
 
-    if "evidence" in decision:
+    evidence_summary = {
+        "source":
+            evidence.get(
+                "source",
+                "UNKNOWN",
+            ),
 
-        evidence = decision["evidence"]
+        "source_type":
+            evidence.get(
+                "source_type",
+                "UNKNOWN",
+            ),
 
-        explanation["evidence"] = {
-            "value": evidence["value"],
-            "source": evidence["source"],
-            "source_type": evidence["source_type"],
-            "confidence": evidence["confidence"],
-        }
-
-    # --------------------------------------------------------
-    # Route cost
-    # --------------------------------------------------------
-
-    cost = route.get("cost")
-
-    if cost:
-
-        explanation["cost"] = {
-            "value": cost.get("value"),
-            "currency": cost.get("currency"),
-            "status": cost.get("status"),
-            "source": cost.get("source"),
-            "confidence": cost.get("confidence"),
-        }
-
-    # --------------------------------------------------------
-    # Network data
-    # --------------------------------------------------------
-
-    explanation["network_data"] = {
-        "status": route.get("status"),
+        "confidence":
+            evidence.get(
+                "confidence",
+                0.0,
+            ),
     }
+
+
+    # ========================================================
+    # PHASE 9 REGULATORY EVIDENCE
+    # ========================================================
+
+    if "jurisdiction" in evidence:
+
+        evidence_summary.update({
+
+            "jurisdiction":
+                evidence.get(
+                    "jurisdiction",
+                    "UNKNOWN",
+                ),
+
+            "asset":
+                evidence.get(
+                    "asset",
+                    "UNKNOWN",
+                ),
+
+            "activity":
+                evidence.get(
+                    "activity",
+                    "UNKNOWN",
+                ),
+
+            "regulatory_status":
+                evidence.get(
+                    "status",
+                    "UNKNOWN",
+                ),
+
+            "evidence_text":
+                evidence.get(
+                    "evidence_text",
+                    "",
+                ),
+        })
+
+
+    # ========================================================
+    # PHASE 8 / POLICY EVIDENCE
+    # ========================================================
+
+    else:
+
+        evidence_summary["value"] = (
+            evidence.get(
+                "value",
+                None,
+            )
+        )
+
+
+    explanation["evidence"] = evidence_summary
+
+
+    # ========================================================
+    # HUMAN-READABLE EXPLANATION
+    # ========================================================
+
+    if "jurisdiction" in evidence:
+
+        jurisdiction = evidence.get(
+            "jurisdiction",
+            "UNKNOWN",
+        )
+
+        regulatory_status = evidence.get(
+            "status",
+            "UNKNOWN",
+        )
+
+        activity = evidence.get(
+            "activity",
+            "UNKNOWN",
+        )
+
+        source = evidence.get(
+            "source",
+            "UNKNOWN",
+        )
+
+        explanation["text"] = (
+            f"Route {route_name} "
+            f"({asset} / {network}) "
+            f"is {status} because regulatory status "
+            f"for {asset} in {jurisdiction} "
+            f"for activity {activity} is "
+            f"{regulatory_status}. "
+            f"Evidence source: {source}."
+        )
+
+    else:
+
+        value = evidence.get(
+            "value",
+            None,
+        )
+
+        source = evidence.get(
+            "source",
+            "UNKNOWN",
+        )
+
+        explanation["text"] = (
+            f"Route {route_name} "
+            f"({asset} / {network}) "
+            f"is {status}."
+        )
+
+        if value is not None:
+
+            explanation["text"] += (
+                f" Evidence value: {value}."
+            )
+
+        explanation["text"] += (
+            f" Evidence source: {source}."
+        )
+
+
+    # ========================================================
+    # DECISION REASON
+    # ========================================================
+
+    if reason:
+
+        explanation["text"] += (
+            f" Decision reason: {reason}."
+        )
+
 
     return explanation
 
 
 # ============================================================
-# HUMAN-READABLE EXPLANATION
-# ============================================================
-
-def print_route_explanation(explanation):
-
-    print()
-    print(
-        f"{explanation['route']} "
-        f"({explanation['asset']} / "
-        f"{explanation['network']})"
-    )
-
-    print("-" * 55)
-
-    print(
-        f"Decision: "
-        f"{explanation['decision']}"
-    )
-
-    if explanation.get("reason"):
-
-        print(
-            f"Reason: "
-            f"{explanation['reason']}"
-        )
-
-    # --------------------------------------------------------
-    # Evidence
-    # --------------------------------------------------------
-
-    evidence = explanation.get("evidence")
-
-    if evidence:
-
-        print()
-        print("Compliance / Policy Evidence:")
-
-        print(
-            f"  Value: "
-            f"{evidence['value']}"
-        )
-
-        print(
-            f"  Source: "
-            f"{evidence['source']}"
-        )
-
-        print(
-            f"  Type: "
-            f"{evidence['source_type']}"
-        )
-
-        print(
-            f"  Confidence: "
-            f"{evidence['confidence']}"
-        )
-
-    # --------------------------------------------------------
-    # Cost
-    # --------------------------------------------------------
-
-    cost = explanation.get("cost")
-
-    if cost:
-
-        print()
-        print("Route Cost:")
-
-        value = cost.get("value")
-
-        if value is None:
-
-            print("  Value: UNKNOWN")
-
-        else:
-
-            currency = cost.get("currency", "")
-
-            print(
-                f"  Value: "
-                f"{value:.6f} {currency}"
-            )
-
-        print(
-            f"  Status: "
-            f"{cost.get('status')}"
-        )
-
-        print(
-            f"  Source: "
-            f"{cost.get('source')}"
-        )
-
-        print(
-            f"  Confidence: "
-            f"{cost.get('confidence')}"
-        )
-
-    # --------------------------------------------------------
-    # Network data
-    # --------------------------------------------------------
-
-    network_data = explanation.get("network_data")
-
-    if network_data:
-
-        print()
-        print("Network Data:")
-
-        print(
-            f"  Status: "
-            f"{network_data.get('status')}"
-        )
-
-
-# ============================================================
-# FINAL DECISION EXPLANATION
-# ============================================================
-
-def print_final_explanation(audit):
-
-    print()
-    print("=== FINAL DECISION EXPLANATION ===")
-
-    print()
-
-    economic = audit["economic"]
-
-    print("Economic Input")
-    print("-" * 55)
-
-    print(
-        f"Transaction value: "
-        f"${economic['transaction_value_usd']:.2f}"
-    )
-
-    print(
-        f"Network cost: "
-        f"${economic['network_cost_usd']:.6f}"
-    )
-
-    print(
-        f"Status: "
-        f"{economic['status']}"
-    )
-
-    print(
-        f"Source: "
-        f"{economic['source']}"
-    )
-
-    print(
-        f"Confidence: "
-        f"{economic['confidence']}"
-    )
-
-    # --------------------------------------------------------
-    # Economic gate
-    # --------------------------------------------------------
-
-    gate = audit["economic_gate"]
-
-    print()
-    print("Economic Gate")
-    print("-" * 55)
-
-    print(
-        f"Status: "
-        f"{gate['status']}"
-    )
-
-    if gate.get("reason"):
-
-        print(
-            f"Reason: "
-            f"{gate['reason']}"
-        )
-
-    # --------------------------------------------------------
-    # Route explanations
-    # --------------------------------------------------------
-
-    print()
-    print("Route Explanations")
-    print("=" * 55)
-
-    for decision in audit["route_decisions"]:
-
-        if "explanation" in decision:
-
-            explanation = decision["explanation"]
-
-        else:
-
-            explanation = build_decision_explanation(
-                decision
-            )
-
-        print_route_explanation(explanation)
-
-    # --------------------------------------------------------
-    # Recommendation
-    # --------------------------------------------------------
-
-    print()
-    print("=== FINAL RECOMMENDATION ===")
-
-    recommendation = audit.get("recommendation")
-
-    if recommendation:
-
-        print(
-            f"Route: "
-            f"{recommendation}"
-        )
-
-    else:
-
-        print("NO_RECOMMENDATION")
-
-    reason = audit.get("recommendation_reason")
-
-    if reason:
-
-        print(
-            f"Reason: "
-            f"{reason}"
-        )
-
-
-# ============================================================
-# MAIN
+# TEST
 # ============================================================
 
 if __name__ == "__main__":
 
-    print("=== DECISION EXPLANATION MODULE ===")
+    test_decision = {
 
-    audit = load_settlement_audit()
+        "route": {
+            "route": "Base",
+            "asset": "ETH",
+            "network": "Base",
+        },
 
-    print_final_explanation(audit)
+        "status":
+            "ELIGIBLE_DATA_INCOMPLETE",
+
+        "reason":
+            "REGULATORY_STATUS_UNKNOWN",
+
+        "evidence": {
+
+            "jurisdiction":
+                "India",
+
+            "asset":
+                "ETH",
+
+            "activity":
+                "CROSS_BORDER_PAYMENT",
+
+            "status":
+                "UNKNOWN",
+
+            "source":
+                "NOT_YET_VALIDATED",
+
+            "source_type":
+                "UNKNOWN",
+
+            "confidence":
+                0.0,
+
+            "evidence_text":
+                "No jurisdiction-specific validated "
+                "evidence has yet been entered.",
+        },
+    }
+
+
+    explanation = (
+        build_decision_explanation(
+            test_decision
+        )
+    )
+
+
+    print(
+        "=== DECISION EXPLANATION TEST ==="
+    )
 
     print()
-    print("Status: READY")
+
+    print(
+        explanation["text"]
+    )
+
+    print()
+
+    print(
+        "Status:",
+        explanation["status"],
+    )
+
+    print(
+        "Reason:",
+        explanation["reason"],
+    )
+
+    print(
+        "Evidence:",
+        explanation["evidence"],
+    )

@@ -1,6 +1,11 @@
 import json
 from datetime import datetime, timezone
 
+from brics_regulatory_evidence import (
+    build_example_unknown,
+    determine_regulatory_state,
+)
+
 from normalized_routes import get_normalized_routes
 from policy_intelligence import build_policy_intelligence
 from economic_intelligence import build_economic_intelligence
@@ -17,6 +22,82 @@ AUDIT_FILE = "audit/settlement_audit.json"
 
 
 # ============================================================
+# BUILD EVIDENCE AUDIT RECORD
+# ============================================================
+
+def build_evidence_audit_record(evidence):
+    """
+    Convert any supported evidence structure into a safe
+    audit representation.
+
+    Phase 8 policy evidence uses:
+        value
+        source
+        source_type
+        confidence
+
+    Phase 9 regulatory evidence uses:
+        jurisdiction
+        asset
+        activity
+        status
+        source
+        source_type
+        confidence
+        evidence_text
+
+    This function deliberately does NOT assume that every
+    evidence object contains a 'value' field.
+    """
+
+    if not isinstance(evidence, dict):
+        return evidence
+
+    record = {}
+
+    # --------------------------------------------------------
+    # Common provenance fields
+    # --------------------------------------------------------
+
+    for field in (
+        "source",
+        "source_type",
+        "confidence",
+    ):
+
+        if field in evidence:
+
+            record[field] = evidence[field]
+
+    # --------------------------------------------------------
+    # Phase 8 policy evidence
+    # --------------------------------------------------------
+
+    if "value" in evidence:
+
+        record["value"] = evidence["value"]
+
+    # --------------------------------------------------------
+    # Phase 9 regulatory evidence
+    # --------------------------------------------------------
+
+    for field in (
+        "jurisdiction",
+        "asset",
+        "activity",
+        "status",
+        "regulatory_status",
+        "evidence_text",
+    ):
+
+        if field in evidence:
+
+            record[field] = evidence[field]
+
+    return record
+
+
+# ============================================================
 # BUILD SETTLEMENT AUDIT
 # ============================================================
 
@@ -24,11 +105,29 @@ def build_settlement_audit(
     economic,
     economic_status,
     economic_reason,
+    regulatory_evidence,
+    regulatory_state,
     decisions,
     ranked_routes,
     recommendation,
     recommendation_reason,
 ):
+    """
+    Build the complete settlement audit record.
+
+    The audit records:
+
+        - economic intelligence
+        - regulatory evidence
+        - regulatory state
+        - route decisions
+        - route ranking
+        - recommendation
+        - data provenance
+
+    The audit does NOT create a recommendation.
+    It records the deterministic decision already made.
+    """
 
     route_decisions = []
 
@@ -44,22 +143,33 @@ def build_settlement_audit(
             "reason": decision["reason"],
         }
 
+        # ----------------------------------------------------
+        # Decision evidence
+        # ----------------------------------------------------
+
         if "evidence" in decision:
 
-            evidence = decision["evidence"]
+            item["evidence"] = (
+                build_evidence_audit_record(
+                    decision["evidence"]
+                )
+            )
 
-            item["evidence"] = {
-                "value": evidence["value"],
-                "source": evidence["source"],
-                "source_type": evidence["source_type"],
-                "confidence": evidence["confidence"],
-            }
+        # ----------------------------------------------------
+        # Decision explanation
+        # ----------------------------------------------------
 
         if "explanation" in decision:
 
-            item["explanation"] = decision["explanation"]
+            item["explanation"] = (
+                decision["explanation"]
+            )
 
         route_decisions.append(item)
+
+    # --------------------------------------------------------
+    # Route ranking
+    # --------------------------------------------------------
 
     route_ranking = []
 
@@ -72,11 +182,19 @@ def build_settlement_audit(
             "cost_usd": route["cost"]["value"],
         })
 
+    # --------------------------------------------------------
+    # Complete audit
+    # --------------------------------------------------------
+
     audit = {
-        "audit_version": "8.7",
+        "audit_version": "9.9",
 
         "generated_at_utc":
             datetime.now(timezone.utc).isoformat(),
+
+        # ----------------------------------------------------
+        # Economic intelligence
+        # ----------------------------------------------------
 
         "economic": {
             "transaction_value_usd":
@@ -95,6 +213,10 @@ def build_settlement_audit(
                 economic["confidence"],
         },
 
+        # ----------------------------------------------------
+        # Economic gate
+        # ----------------------------------------------------
+
         "economic_gate": {
             "status":
                 economic_status,
@@ -103,17 +225,66 @@ def build_settlement_audit(
                 economic_reason,
         },
 
+        # ----------------------------------------------------
+        # Regulatory intelligence
+        # ----------------------------------------------------
+
+        "regulatory_gate": {
+            "jurisdiction":
+                regulatory_evidence["jurisdiction"],
+
+            "asset":
+                regulatory_evidence["asset"],
+
+            "activity":
+                regulatory_evidence["activity"],
+
+            "status":
+                regulatory_evidence["status"],
+
+            "regulatory_state":
+                regulatory_state,
+
+            "source":
+                regulatory_evidence["source"],
+
+            "source_type":
+                regulatory_evidence["source_type"],
+
+            "confidence":
+                regulatory_evidence["confidence"],
+
+            "evidence_text":
+                regulatory_evidence["evidence_text"],
+        },
+
+        # ----------------------------------------------------
+        # Route decisions
+        # ----------------------------------------------------
+
         "route_decisions":
             route_decisions,
 
+        # ----------------------------------------------------
+        # Route ranking
+        # ----------------------------------------------------
+
         "route_ranking":
             route_ranking,
+
+        # ----------------------------------------------------
+        # Recommendation
+        # ----------------------------------------------------
 
         "recommendation":
             recommendation,
 
         "recommendation_reason":
             recommendation_reason,
+
+        # ----------------------------------------------------
+        # Provenance
+        # ----------------------------------------------------
 
         "provenance": {
             "economic_input":
@@ -133,6 +304,9 @@ def build_settlement_audit(
 
             "geopolitical":
                 "REFERENCE",
+
+            "regulatory":
+                regulatory_evidence["source_type"],
         },
     }
 
@@ -145,8 +319,13 @@ def build_settlement_audit(
 
 economic = build_economic_intelligence()
 
-transaction_value_usd = economic["transaction_value_usd"]
-network_cost_usd = economic["network_cost_usd"]
+transaction_value_usd = (
+    economic["transaction_value_usd"]
+)
+
+network_cost_usd = (
+    economic["network_cost_usd"]
+)
 
 
 print("=== REAL ECONOMIC INPUT ===")
@@ -181,7 +360,7 @@ if network_cost_usd > transaction_value_usd:
     economic_status = "REJECTED"
 
     economic_reason = (
-        "NETWORK_COST_EXCEEDS_VALUE"
+        "NETWORK_COST_EXCEEDS_TRANSACTION_VALUE"
     )
 
 else:
@@ -205,6 +384,48 @@ if economic_reason:
         f"Reason: "
         f"{economic_reason}"
     )
+
+
+# ============================================================
+# REGULATORY EVIDENCE
+# ============================================================
+
+regulatory_evidence = build_example_unknown()
+
+regulatory_state = (
+    determine_regulatory_state(
+        regulatory_evidence
+    )
+)
+
+
+print()
+print("=== REGULATORY GATE ===")
+
+print(
+    f"Jurisdiction: "
+    f"{regulatory_evidence['jurisdiction']}"
+)
+
+print(
+    f"Asset: "
+    f"{regulatory_evidence['asset']}"
+)
+
+print(
+    f"Activity: "
+    f"{regulatory_evidence['activity']}"
+)
+
+print(
+    f"Status: "
+    f"{regulatory_evidence['status']}"
+)
+
+print(
+    f"Regulatory state: "
+    f"{regulatory_state}"
+)
 
 
 # ============================================================
@@ -251,6 +472,54 @@ for route_key, route in normalized_routes.items():
 
 
     # --------------------------------------------------------
+    # Regulatory gate
+    #
+    # Phase 9.9:
+    #
+    # Regulatory evidence is evaluated BEFORE the older
+    # generic policy layer.
+    #
+    # UNKNOWN / CONDITIONAL / REQUIRES_REVIEW means the
+    # route cannot become ELIGIBLE.
+    # --------------------------------------------------------
+
+    if regulatory_state == "PROHIBITED":
+
+        decisions.append({
+            "route": route,
+
+            "status":
+                "REJECTED",
+
+            "reason":
+                "REGULATORY_STATUS_PROHIBITED",
+
+            "evidence":
+                regulatory_evidence,
+        })
+
+        continue
+
+
+    if regulatory_state != "PERMITTED":
+
+        decisions.append({
+            "route": route,
+
+            "status":
+                "ELIGIBLE_DATA_INCOMPLETE",
+
+            "reason":
+                "REGULATORY_STATUS_UNKNOWN",
+
+            "evidence":
+                regulatory_evidence,
+        })
+
+        continue
+
+
+    # --------------------------------------------------------
     # Compliance
     # --------------------------------------------------------
 
@@ -261,10 +530,15 @@ for route_key, route in normalized_routes.items():
 
         decisions.append({
             "route": route,
-            "status": "REJECTED",
-            "reason": "COMPLIANCE_BLOCKED",
 
-            "evidence": compliance,
+            "status":
+                "REJECTED",
+
+            "reason":
+                "COMPLIANCE_BLOCKED",
+
+            "evidence":
+                compliance,
         })
 
         continue
@@ -301,8 +575,12 @@ for route_key, route in normalized_routes.items():
 
         decisions.append({
             "route": route,
-            "status": "REJECTED",
-            "reason": "GEOPOLITICAL_RESTRICTION",
+
+            "status":
+                "REJECTED",
+
+            "reason":
+                "GEOPOLITICAL_RESTRICTION",
 
             "evidence":
                 geopolitical,
@@ -424,8 +702,12 @@ for route_key, route in normalized_routes.items():
 
     decisions.append({
         "route": route,
-        "status": "ELIGIBLE",
-        "reason": None,
+
+        "status":
+            "ELIGIBLE",
+
+        "reason":
+            None,
     })
 
 
@@ -443,7 +725,7 @@ for decision in decisions:
 
 
 # ============================================================
-# DISPLAY DECISIONS
+# SETTLEMENT DECISION
 # ============================================================
 
 print()
@@ -627,6 +909,11 @@ print(
     "REFERENCE"
 )
 
+print(
+    f"Regulatory evidence: "
+    f"{regulatory_evidence['source_type']}"
+)
+
 
 # ============================================================
 # BUILD AUDIT RECORD
@@ -640,6 +927,12 @@ audit = build_settlement_audit(
 
     economic_reason=
         economic_reason,
+
+    regulatory_evidence=
+        regulatory_evidence,
+
+    regulatory_state=
+        regulatory_state,
 
     decisions=
         decisions,
@@ -682,7 +975,7 @@ print(
 
 print(
     "Audit version: "
-    "8.7"
+    "9.9"
 )
 
 print(

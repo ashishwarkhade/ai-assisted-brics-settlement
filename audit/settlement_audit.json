@@ -1,9 +1,9 @@
 {
-    "audit_version": "8.7",
-    "generated_at_utc": "2026-08-23T10:37:41.505412+00:00",
+    "audit_version": "9.9",
+    "generated_at_utc": "2026-08-24T10:59:48.599759+00:00",
     "economic": {
-        "transaction_value_usd": 122.96218400000001,
-        "network_cost_usd": 0.0008278177762426971,
+        "transaction_value_usd": 125.374335,
+        "network_cost_usd": 0.0008440570899229225,
         "status": "REAL",
         "source": "Base RPC + CoinGecko",
         "confidence": 1.0
@@ -12,41 +12,51 @@
         "status": "PASSED",
         "reason": null
     },
+    "regulatory_gate": {
+        "jurisdiction": "India",
+        "asset": "ETH",
+        "activity": "CROSS_BORDER_PAYMENT",
+        "status": "UNKNOWN",
+        "regulatory_state": "UNKNOWN",
+        "source": "NOT_YET_VALIDATED",
+        "source_type": "UNKNOWN",
+        "confidence": 0.0,
+        "evidence_text": "No jurisdiction-specific validated evidence has yet been entered."
+    },
     "route_decisions": [
         {
             "route": "Bitcoin",
             "asset": "BTC",
             "network": "Bitcoin",
             "status": "ELIGIBLE_DATA_INCOMPLETE",
-            "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+            "reason": "REGULATORY_STATUS_UNKNOWN",
             "evidence": {
-                "value": "REQUIRES_JURISDICTION_REVIEW",
-                "source": "FATF",
-                "source_type": "REFERENCE",
-                "confidence": 0.7
+                "source": "NOT_YET_VALIDATED",
+                "source_type": "UNKNOWN",
+                "confidence": 0.0,
+                "jurisdiction": "India",
+                "asset": "ETH",
+                "activity": "CROSS_BORDER_PAYMENT",
+                "status": "UNKNOWN",
+                "evidence_text": "No jurisdiction-specific validated evidence has yet been entered."
             },
             "explanation": {
                 "route": "Bitcoin",
                 "asset": "BTC",
                 "network": "Bitcoin",
-                "decision": "ELIGIBLE_DATA_INCOMPLETE",
-                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "status": "ELIGIBLE_DATA_INCOMPLETE",
+                "reason": "REGULATORY_STATUS_UNKNOWN",
                 "evidence": {
-                    "value": "REQUIRES_JURISDICTION_REVIEW",
-                    "source": "FATF",
-                    "source_type": "REFERENCE",
-                    "confidence": 0.7
+                    "source": "NOT_YET_VALIDATED",
+                    "source_type": "UNKNOWN",
+                    "confidence": 0.0,
+                    "jurisdiction": "India",
+                    "asset": "ETH",
+                    "activity": "CROSS_BORDER_PAYMENT",
+                    "regulatory_status": "UNKNOWN",
+                    "evidence_text": "No jurisdiction-specific validated evidence has yet been entered."
                 },
-                "cost": {
-                    "value": 0.21521359999999998,
-                    "currency": "USD",
-                    "status": "REAL_ESTIMATE",
-                    "source": "mempool.space + CoinGecko",
-                    "confidence": 0.8
-                },
-                "network_data": {
-                    "status": "REAL_NETWORK_DATA"
-                }
+                "text": "Route Bitcoin (BTC / Bitcoin) is ELIGIBLE_DATA_INCOMPLETE because regulatory status for BTC in India for activity CROSS_BORDER_PAYMENT is UNKNOWN. Evidence source: NOT_YET_VALIDATED. Decision reason: REGULATORY_STATUS_UNKNOWN."
             }
         },
         {
@@ -54,35 +64,34 @@
             "asset": "ETH",
             "network": "Base",
             "status": "ELIGIBLE_DATA_INCOMPLETE",
-            "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+            "reason": "REGULATORY_STATUS_UNKNOWN",
             "evidence": {
-                "value": "REQUIRES_JURISDICTION_REVIEW",
-                "source": "FATF",
-                "source_type": "REFERENCE",
-                "confidence": 0.7
+                "source": "NOT_YET_VALIDATED",
+                "source_type": "UNKNOWN",
+                "confidence": 0.0,
+                "jurisdiction": "India",
+                "asset": "ETH",
+                "activity": "CROSS_BORDER_PAYMENT",
+                "status": "UNKNOWN",
+                "evidence_text": "No jurisdiction-specific validated evidence has yet been entered."
             },
             "explanation": {
                 "route": "Base",
                 "asset": "ETH",
                 "network": "Base",
-                "decision": "ELIGIBLE_DATA_INCOMPLETE",
-                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "status": "ELIGIBLE_DATA_INCOMPLETE",
+                "reason": "REGULATORY_STATUS_UNKNOWN",
                 "evidence": {
-                    "value": "REQUIRES_JURISDICTION_REVIEW",
-                    "source": "FATF",
-                    "source_type": "REFERENCE",
-                    "confidence": 0.7
+                    "source": "NOT_YET_VALIDATED",
+                    "source_type": "UNKNOWN",
+                    "confidence": 0.0,
+                    "jurisdiction": "India",
+                    "asset": "ETH",
+                    "activity": "CROSS_BORDER_PAYMENT",
+                    "regulatory_status": "UNKNOWN",
+                    "evidence_text": "No jurisdiction-specific validated evidence has yet been entered."
                 },
-                "cost": {
-                    "value": 0.0008278177762426971,
-                    "currency": "USD",
-                    "status": "REAL_OBSERVED",
-                    "source": "Base RPC + CoinGecko",
-                    "confidence": 1.0
-                },
-                "network_data": {
-                    "status": "REAL_NETWORK_DATA"
-                }
+                "text": "Route Base (ETH / Base) is ELIGIBLE_DATA_INCOMPLETE because regulatory status for ETH in India for activity CROSS_BORDER_PAYMENT is UNKNOWN. Evidence source: NOT_YET_VALIDATED. Decision reason: REGULATORY_STATUS_UNKNOWN."
             }
         }
     ],
@@ -95,6 +104,7 @@
         "route_network_data": "REAL",
         "route_risk": "TEST",
         "compliance": "REFERENCE",
-        "geopolitical": "REFERENCE"
+        "geopolitical": "REFERENCE",
+        "regulatory": "UNKNOWN"
     }
 }
