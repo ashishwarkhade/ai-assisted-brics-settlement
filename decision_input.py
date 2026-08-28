@@ -1,7 +1,9 @@
 def build_decision_input(
     intelligence,
     regulatory_evidence=None,
+    telegraph_intelligence=None,
 ):
+
     """
     Convert normalized transaction intelligence
     into a provider-independent decision input.
@@ -37,6 +39,16 @@ def build_decision_input(
             regulatory_evidence
         )
 
+    # --------------------------------------------------------
+    # PHASE 10.4 — TELEGRAPH INTELLIGENCE
+    # --------------------------------------------------------
+
+    if telegraph_intelligence is not None:
+
+        decision_input["telegraph_intelligence"] = (
+            telegraph_intelligence
+        )
+
     return decision_input
 
 
@@ -53,6 +65,7 @@ if __name__ == "__main__":
     decision_input = build_decision_input(
         intelligence
     )
+
 
     print("=== DECISION INPUT ===")
 

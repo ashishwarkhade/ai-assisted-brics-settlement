@@ -10,6 +10,7 @@ from normalized_routes import get_normalized_routes
 from policy_intelligence import build_policy_intelligence
 from economic_intelligence import build_economic_intelligence
 from decision_explanation import build_decision_explanation
+from telegraph_decision_integration import build_telegraph_decision_input
 
 
 # ============================================================
@@ -111,6 +112,7 @@ def build_settlement_audit(
     ranked_routes,
     recommendation,
     recommendation_reason,
+    telegraph_intelligence=None,
 ):
     """
     Build the complete settlement audit record.
@@ -307,6 +309,11 @@ def build_settlement_audit(
 
             "regulatory":
                 regulatory_evidence["source_type"],
+
+            "telegraph":
+                "AVAILABLE"
+                if telegraph_intelligence is not None
+                else "UNAVAILABLE",
         },
     }
 
@@ -426,6 +433,81 @@ print(
     f"Regulatory state: "
     f"{regulatory_state}"
 )
+
+
+# ============================================================
+# PHASE 10.5 — TELEGRAPH DECISION INPUT
+# ============================================================
+
+# Telegraph is an intelligence provider only.
+# Its normalized output is passed into the provider-independent
+# decision-input contract. No settlement decision is made here.
+
+telegraph_intelligence = None
+
+try:
+
+    telegraph_decision_input = (
+        build_telegraph_decision_input(
+            intelligence={
+                "asset": economic["asset"],
+                "network": economic["network"],
+                "chain_id": economic["chain_id"],
+                "status": economic["status"],
+                "confidence": economic["confidence"],
+                "value_usd": economic[
+                    "transaction_value_usd"
+                ],
+                "network_cost_usd": economic[
+                    "network_cost_usd"
+                ],
+                "market_price_usd": economic[
+                    "eth_price_usd"
+                ],
+            },
+            regulatory_evidence=
+                regulatory_evidence,
+        )
+    )
+
+    telegraph_intelligence = (
+        telegraph_decision_input.get(
+            "telegraph_intelligence"
+        )
+    )
+
+    print()
+    print("=== TELEGRAPH INTELLIGENCE ===")
+
+    if telegraph_intelligence is not None:
+
+        print(
+            f"Request ID: "
+            f"{telegraph_intelligence['request_id']}"
+        )
+
+        print(
+            f"Routes: "
+            f"{list(telegraph_intelligence['routes'].keys())}"
+        )
+
+        print(
+            "Settlement decision: "
+            "NOT MADE BY TELEGRAPH"
+        )
+
+except (FileNotFoundError, ValueError) as exc:
+
+    print()
+    print("=== TELEGRAPH INTELLIGENCE ===")
+
+    print(
+        "Status: UNAVAILABLE"
+    )
+
+    print(
+        f"Reason: {exc}"
+    )
 
 
 # ============================================================
@@ -945,6 +1027,9 @@ audit = build_settlement_audit(
 
     recommendation_reason=
         recommendation_reason,
+
+    telegraph_intelligence=
+        telegraph_intelligence,
 )
 
 
