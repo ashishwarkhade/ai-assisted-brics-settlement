@@ -1,3 +1,4 @@
+
 import json
 
 
@@ -5,28 +6,51 @@ import json
 # CONFIGURATION
 # ============================================================
 
-REPORT_FILE = "audit/settlement_report_8_12.json"
+AUDIT_FILE = "audit/settlement_audit.json"
 
 
 # ============================================================
-# LOAD SETTLEMENT REPORT
+# AI AUTHORITY
+# ============================================================
+
+AI_AUTHORITY = "EXPLANATION_ONLY"
+
+
+# ============================================================
+# LOAD SETTLEMENT AUDIT
 # ============================================================
 
 def load_settlement_report():
 
-    with open(REPORT_FILE, "r") as file:
+    with open(
+        AUDIT_FILE,
+        "r",
+        encoding="utf-8",
+    ) as file:
+
         return json.load(file)
 
 
 # ============================================================
-# BUILD CONFIDENCE FROM REPORT
+# BUILD CONFIDENCE FROM AUDIT
 # ============================================================
 
 def calculate_confidence(report):
 
-    economic = report.get("economic", {})
-    provenance = report.get("provenance", {})
-    route_decisions = report.get("route_decisions", [])
+    economic = report.get(
+        "economic",
+        {}
+    )
+
+    provenance = report.get(
+        "provenance",
+        {}
+    )
+
+    route_decisions = report.get(
+        "route_decisions",
+        []
+    )
 
     economic_confidence = economic.get(
         "confidence",
@@ -47,7 +71,9 @@ def calculate_confidence(report):
 
     for decision in route_decisions:
 
-        evidence = decision.get("evidence")
+        evidence = decision.get(
+            "evidence"
+        )
 
         if not evidence:
             continue
@@ -72,11 +98,15 @@ def calculate_confidence(report):
     # Risk
     # --------------------------------------------------------
 
-    if provenance.get("route_risk") == "REAL":
+    if provenance.get(
+        "route_risk"
+    ) == "REAL":
 
         risk_confidence = 1.0
 
-    elif provenance.get("route_risk") == "REFERENCE":
+    elif provenance.get(
+        "route_risk"
+    ) == "REFERENCE":
 
         risk_confidence = 0.5
 
@@ -88,11 +118,15 @@ def calculate_confidence(report):
     # Geopolitical
     # --------------------------------------------------------
 
-    if provenance.get("geopolitical") == "REAL":
+    if provenance.get(
+        "geopolitical"
+    ) == "REAL":
 
         geopolitical_confidence = 1.0
 
-    elif provenance.get("geopolitical") == "REFERENCE":
+    elif provenance.get(
+        "geopolitical"
+    ) == "REFERENCE":
 
         geopolitical_confidence = 0.5
 
@@ -116,13 +150,23 @@ def calculate_confidence(report):
     )
 
     return {
-        "overall_confidence": overall_confidence,
-        "economic_confidence": economic_confidence,
-        "network_confidence": network_confidence,
-        "compliance_confidence": compliance_confidence,
+        "overall_confidence":
+            overall_confidence,
+
+        "economic_confidence":
+            economic_confidence,
+
+        "network_confidence":
+            network_confidence,
+
+        "compliance_confidence":
+            compliance_confidence,
+
         "geopolitical_confidence":
             geopolitical_confidence,
-        "risk_confidence": risk_confidence,
+
+        "risk_confidence":
+            risk_confidence,
     }
 
 
@@ -130,7 +174,9 @@ def calculate_confidence(report):
 # ROUTE EXPLANATION
 # ============================================================
 
-def explain_route_decision(decision):
+def explain_route_decision(
+    decision
+):
 
     route = decision.get(
         "route",
@@ -157,12 +203,15 @@ def explain_route_decision(decision):
     )
 
     print()
+
     print(
         f"{route} "
         f"({asset} / {network})"
     )
 
-    print("-" * 60)
+    print(
+        "-" * 60
+    )
 
     print(
         f"Decision status: {status}"
@@ -181,6 +230,7 @@ def explain_route_decision(decision):
     if evidence:
 
         print()
+
         print(
             "Supporting evidence:"
         )
@@ -207,15 +257,136 @@ def explain_route_decision(decision):
 
 
 # ============================================================
+# TELEGRAPH INTELLIGENCE
+# ============================================================
+
+def explain_telegraph_intelligence(
+    report
+):
+
+    telegraph = report.get(
+        "telegraph_intelligence"
+    )
+
+    provenance = report.get(
+        "provenance",
+        {}
+    )
+
+    print()
+
+    print(
+        "TELEGRAPH INTELLIGENCE"
+    )
+
+    print(
+        "-" * 60
+    )
+
+    if not telegraph:
+
+        print(
+            "Status: NOT_AVAILABLE"
+        )
+
+        return
+
+    print(
+        f"Status: "
+        f"{provenance.get('telegraph', 'AVAILABLE')}"
+    )
+
+    print(
+        f"Request ID: "
+        f"{telegraph.get('request_id')}"
+    )
+
+    print(
+        f"Generated at: "
+        f"{telegraph.get('generated_at')}"
+    )
+
+    routes = telegraph.get(
+        "routes",
+        {}
+    )
+
+    print(
+        f"Routes: "
+        f"{list(routes.keys())}"
+    )
+
+    for route_id, route in routes.items():
+
+        asset = route.get(
+            "asset",
+            "UNKNOWN"
+        )
+
+        network = route.get(
+            "network",
+            "UNKNOWN"
+        )
+
+        evidence = route.get(
+            "evidence",
+            []
+        )
+
+        print(
+            f"  {route_id} | "
+            f"{asset} / {network} | "
+            f"evidence={len(evidence)}"
+        )
+
+    print()
+
+    print(
+        "Role: PROVIDER-DERIVED "
+        "INTELLIGENCE ONLY"
+    )
+
+    print(
+        "Telegraph does not make the "
+        "settlement decision."
+    )
+
+    print(
+        "Telegraph does not override "
+        "deterministic eligibility."
+    )
+
+    print(
+        "Telegraph does not override "
+        "deterministic ranking."
+    )
+
+    print(
+        "Telegraph does not create a "
+        "settlement recommendation."
+    )
+
+
+# ============================================================
 # AI-ASSISTED INTERPRETATION
 # ============================================================
 
-def explain_settlement_report(report):
+def explain_settlement_report(
+    report
+):
 
     print()
+
     print(
         "=== AI-ASSISTED "
         "SETTLEMENT INTERPRETATION ==="
+    )
+
+    print()
+
+    print(
+        f"AI authority: "
+        f"{AI_AUTHORITY}"
     )
 
     # --------------------------------------------------------
@@ -227,13 +398,24 @@ def explain_settlement_report(report):
         {}
     )
 
+    economic_gate = report.get(
+        "economic_gate",
+        {}
+    )
+
     print()
-    print("1. ECONOMIC CONDITION")
-    print("-" * 60)
 
     print(
-        "The transaction passed "
-        "the economic gate."
+        "1. ECONOMIC CONDITION"
+    )
+
+    print(
+        "-" * 60
+    )
+
+    print(
+        f"Economic gate: "
+        f"{economic_gate.get('status')}"
     )
 
     print(
@@ -251,32 +433,101 @@ def explain_settlement_report(report):
         f"{economic.get('source')}"
     )
 
+    print(
+        f"Economic confidence: "
+        f"{economic.get('confidence')}"
+    )
+
     # --------------------------------------------------------
-    # Route interpretation
+    # Regulatory condition
+    # --------------------------------------------------------
+
+    regulatory_gate = report.get(
+        "regulatory_gate",
+        {}
+    )
+
+    print()
+
+    print(
+        "2. REGULATORY / POLICY CONDITION"
+    )
+
+    print(
+        "-" * 60
+    )
+
+    print(
+        f"Jurisdiction: "
+        f"{regulatory_gate.get('jurisdiction')}"
+    )
+
+    print(
+        f"Asset: "
+        f"{regulatory_gate.get('asset')}"
+    )
+
+    print(
+        f"Activity: "
+        f"{regulatory_gate.get('activity')}"
+    )
+
+    print(
+        f"Status: "
+        f"{regulatory_gate.get('status')}"
+    )
+
+    print(
+        f"Regulatory state: "
+        f"{regulatory_gate.get('regulatory_state')}"
+    )
+
+    # --------------------------------------------------------
+    # Route decisions
     # --------------------------------------------------------
 
     print()
-    print("2. ROUTE INTERPRETATION")
-    print("-" * 60)
+
+    print(
+        "3. DETERMINISTIC ROUTE DECISIONS"
+    )
+
+    print(
+        "-" * 60
+    )
 
     route_decisions = report.get(
         "route_decisions",
         []
     )
 
-    for decision in route_decisions:
+    if not route_decisions:
 
-        explain_route_decision(
-            decision
+        print(
+            "No route decisions are available."
         )
+
+    else:
+
+        for decision in route_decisions:
+
+            explain_route_decision(
+                decision
+            )
 
     # --------------------------------------------------------
     # Recommendation
     # --------------------------------------------------------
 
     print()
-    print("3. RECOMMENDATION INTERPRETATION")
-    print("-" * 60)
+
+    print(
+        "4. DETERMINISTIC RECOMMENDATION"
+    )
+
+    print(
+        "-" * 60
+    )
 
     recommendation = report.get(
         "recommendation"
@@ -289,14 +540,14 @@ def explain_settlement_report(report):
     if recommendation:
 
         print(
-            f"Deterministic recommendation: "
+            f"Recommendation: "
             f"{recommendation}"
         )
 
     else:
 
         print(
-            "Deterministic recommendation: "
+            "Recommendation: "
             "NO_RECOMMENDATION"
         )
 
@@ -320,8 +571,14 @@ def explain_settlement_report(report):
     ]
 
     print()
-    print("4. CONFIDENCE INTERPRETATION")
-    print("-" * 60)
+
+    print(
+        "5. CONFIDENCE INTERPRETATION"
+    )
+
+    print(
+        "-" * 60
+    )
 
     print(
         f"Overall confidence: "
@@ -373,10 +630,14 @@ def explain_settlement_report(report):
     # --------------------------------------------------------
 
     print()
+
     print(
-        "5. MISSING / INCOMPLETE INFORMATION"
+        "6. MISSING / INCOMPLETE INFORMATION"
     )
-    print("-" * 60)
+
+    print(
+        "-" * 60
+    )
 
     provenance = report.get(
         "provenance",
@@ -385,21 +646,27 @@ def explain_settlement_report(report):
 
     missing_items = []
 
-    if provenance.get("compliance") != "REAL":
+    if provenance.get(
+        "compliance"
+    ) != "REAL":
 
         missing_items.append(
             "jurisdiction-specific "
             "compliance validation"
         )
 
-    if provenance.get("geopolitical") != "REAL":
+    if provenance.get(
+        "geopolitical"
+    ) != "REAL":
 
         missing_items.append(
             "validated geopolitical "
             "settlement status"
         )
 
-    if provenance.get("route_risk") != "REAL":
+    if provenance.get(
+        "route_risk"
+    ) != "REAL":
 
         missing_items.append(
             "validated route risk data"
@@ -420,12 +687,43 @@ def explain_settlement_report(report):
             )
 
     # --------------------------------------------------------
+    # Telegraph
+    # --------------------------------------------------------
+
+    print()
+
+    print(
+        "7. TELEGRAPH INTELLIGENCE"
+    )
+
+    print(
+        "-" * 60
+    )
+
+    explain_telegraph_intelligence(
+        report
+    )
+
+    # --------------------------------------------------------
     # AI interpretation
     # --------------------------------------------------------
 
     print()
-    print("6. AI INTERPRETATION")
-    print("-" * 60)
+
+    print(
+        "8. AI INTERPRETATION"
+    )
+
+    print(
+        "-" * 60
+    )
+
+    telegraph_available = (
+        report.get(
+            "telegraph_intelligence"
+        )
+        is not None
+    )
 
     if recommendation is None:
 
@@ -439,9 +737,16 @@ def explain_settlement_report(report):
             "policy, geopolitical, and risk information."
         )
 
+        if telegraph_available:
+
+            print(
+                "Telegraph intelligence is available "
+                "but does not change the deterministic result."
+            )
+
         print(
             "The AI assistant explains the "
-            "deterministic result but does not "
+            "deterministic result and does not "
             "create an alternative recommendation."
         )
 
@@ -452,12 +757,20 @@ def explain_settlement_report(report):
             "a settlement recommendation."
         )
 
+        if telegraph_available:
+
+            print(
+                "Telegraph intelligence is presented "
+                "as provider-derived context only."
+            )
+
         print(
             "The AI assistant provides an "
             "interpretation of that decision."
         )
 
     print()
+
     print(
         "AI role: EXPLAIN — NOT OVERRIDE"
     )
@@ -476,4 +789,7 @@ if __name__ == "__main__":
     )
 
     print()
-    print("Status: READY")
+
+    print(
+        "Status: READY"
+    )

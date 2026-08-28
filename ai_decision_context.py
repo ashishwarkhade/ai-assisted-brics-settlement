@@ -7,6 +7,8 @@ import json
 
 REPORT_FILE = "audit/settlement_report_8_12.json"
 
+AUDIT_FILE = "audit/settlement_audit.json"
+
 
 # ============================================================
 # AI AUTHORITY
@@ -21,9 +23,37 @@ AI_AUTHORITY = "EXPLANATION_ONLY"
 
 def load_settlement_report():
 
-    with open(REPORT_FILE, "r") as file:
+    with open(
+        REPORT_FILE,
+        "r",
+        encoding="utf-8",
+    ) as file:
 
         return json.load(file)
+
+
+# ============================================================
+# LOAD AUDIT
+# ============================================================
+
+def load_settlement_audit():
+
+    try:
+
+        with open(
+            AUDIT_FILE,
+            "r",
+            encoding="utf-8",
+        ) as file:
+
+            return json.load(file)
+
+    except (
+        FileNotFoundError,
+        json.JSONDecodeError,
+    ):
+
+        return {}
 
 
 # ============================================================
@@ -53,6 +83,31 @@ def build_ai_decision_context(report):
     )
 
     # --------------------------------------------------------
+    # Telegraph intelligence
+    #
+    # Primary source:
+    #     settlement report
+    #
+    # Fallback:
+    #     settlement audit
+    #
+    # Telegraph remains an intelligence provider only.
+    # It does not make settlement decisions.
+    # --------------------------------------------------------
+
+    telegraph_intelligence = report.get(
+        "telegraph_intelligence"
+    )
+
+    if telegraph_intelligence is None:
+
+        audit = load_settlement_audit()
+
+        telegraph_intelligence = audit.get(
+            "telegraph_intelligence"
+        )
+
+    # --------------------------------------------------------
     # Route information
     # --------------------------------------------------------
 
@@ -61,11 +116,25 @@ def build_ai_decision_context(report):
     for decision in route_decisions:
 
         route = {
-            "route": decision.get("route"),
-            "asset": decision.get("asset"),
-            "network": decision.get("network"),
-            "status": decision.get("status"),
-            "reason": decision.get("reason"),
+            "route": decision.get(
+                "route"
+            ),
+
+            "asset": decision.get(
+                "asset"
+            ),
+
+            "network": decision.get(
+                "network"
+            ),
+
+            "status": decision.get(
+                "status"
+            ),
+
+            "reason": decision.get(
+                "reason"
+            ),
         }
 
         evidence = decision.get(
@@ -75,12 +144,26 @@ def build_ai_decision_context(report):
         if evidence:
 
             route["evidence"] = {
-                "value": evidence.get("value"),
-                "source": evidence.get("source"),
+
+                "value":
+                    evidence.get(
+                        "value"
+                    ),
+
+                "source":
+                    evidence.get(
+                        "source"
+                    ),
+
                 "source_type":
-                    evidence.get("source_type"),
+                    evidence.get(
+                        "source_type"
+                    ),
+
                 "confidence":
-                    evidence.get("confidence"),
+                    evidence.get(
+                        "confidence"
+                    ),
             }
 
         explanation = decision.get(
@@ -96,15 +179,36 @@ def build_ai_decision_context(report):
             if cost:
 
                 route["cost"] = {
-                    "value": cost.get("value"),
-                    "currency": cost.get("currency"),
-                    "status": cost.get("status"),
-                    "source": cost.get("source"),
+
+                    "value":
+                        cost.get(
+                            "value"
+                        ),
+
+                    "currency":
+                        cost.get(
+                            "currency"
+                        ),
+
+                    "status":
+                        cost.get(
+                            "status"
+                        ),
+
+                    "source":
+                        cost.get(
+                            "source"
+                        ),
+
                     "confidence":
-                        cost.get("confidence"),
+                        cost.get(
+                            "confidence"
+                        ),
                 }
 
-        routes.append(route)
+        routes.append(
+            route
+        )
 
     # --------------------------------------------------------
     # Controlled context
@@ -112,47 +216,84 @@ def build_ai_decision_context(report):
 
     context = {
 
-        "context_version": "8.14",
+        "context_version":
+            "10.5",
 
-        "ai_authority": AI_AUTHORITY,
+        "ai_authority":
+            AI_AUTHORITY,
 
         "instruction": (
             "Explain the deterministic settlement "
-            "decision. Do not create, modify, or "
-            "override a settlement recommendation."
+            "decision using the supplied evidence. "
+            "Do not create, modify, override, or "
+            "recommend a settlement route."
         ),
 
+        # ----------------------------------------------------
+        # Economic
+        # ----------------------------------------------------
+
         "economic": {
+
             "transaction_value_usd":
                 economic.get(
                     "transaction_value_usd"
                 ),
+
             "network_cost_usd":
                 economic.get(
                     "network_cost_usd"
                 ),
+
             "status":
-                economic.get("status"),
+                economic.get(
+                    "status"
+                ),
+
             "source":
-                economic.get("source"),
+                economic.get(
+                    "source"
+                ),
+
             "confidence":
-                economic.get("confidence"),
+                economic.get(
+                    "confidence"
+                ),
         },
+
+        # ----------------------------------------------------
+        # Economic gate
+        # ----------------------------------------------------
 
         "economic_gate": {
+
             "status":
-                economic_gate.get("status"),
+                economic_gate.get(
+                    "status"
+                ),
+
             "reason":
-                economic_gate.get("reason"),
+                economic_gate.get(
+                    "reason"
+                ),
         },
 
-        "routes": routes,
+        # ----------------------------------------------------
+        # Deterministic route decisions
+        # ----------------------------------------------------
+
+        "routes":
+            routes,
 
         "route_ranking":
             report.get(
                 "route_ranking",
                 []
             ),
+
+        # ----------------------------------------------------
+        # Deterministic recommendation
+        # ----------------------------------------------------
 
         "recommendation":
             report.get(
@@ -164,7 +305,23 @@ def build_ai_decision_context(report):
                 "recommendation_reason"
             ),
 
-        "provenance": provenance,
+        # ----------------------------------------------------
+        # Telegraph intelligence
+        # ----------------------------------------------------
+
+        "telegraph_intelligence":
+            telegraph_intelligence,
+
+        # ----------------------------------------------------
+        # Provenance
+        # ----------------------------------------------------
+
+        "provenance":
+            provenance,
+
+        # ----------------------------------------------------
+        # AI safety constraints
+        # ----------------------------------------------------
 
         "ai_constraints": [
 
@@ -172,17 +329,41 @@ def build_ai_decision_context(report):
 
             "Do not override NO_RECOMMENDATION.",
 
+            "Do not create a recommendation.",
+
+            "Do not modify a deterministic recommendation.",
+
             "Do not modify compliance status.",
+
+            "Do not modify regulatory status.",
 
             "Do not modify geopolitical status.",
 
             "Do not modify risk values.",
 
+            "Do not modify economic values.",
+
+            "Do not treat Telegraph intelligence "
+            "as a settlement decision.",
+
+            "Do not use Telegraph intelligence "
+            "to override deterministic eligibility.",
+
+            "Do not use Telegraph intelligence "
+            "to override deterministic ranking.",
+
             "Do not invent missing evidence.",
 
             "Do not invent costs.",
 
+            "Do not invent regulatory conclusions.",
+
+            "Do not invent geopolitical conclusions.",
+
             "Clearly identify incomplete data.",
+
+            "Clearly identify provider-derived "
+            "Telegraph intelligence.",
 
             "Explain the deterministic result only.",
         ],
@@ -195,7 +376,9 @@ def build_ai_decision_context(report):
 # DISPLAY CONTROLLED CONTEXT
 # ============================================================
 
-def print_ai_decision_context(context):
+def print_ai_decision_context(
+    context
+):
 
     print(
         "=== CONTROLLED AI DECISION CONTEXT ==="
@@ -215,6 +398,10 @@ def print_ai_decision_context(context):
 
     print()
 
+    # --------------------------------------------------------
+    # Instruction
+    # --------------------------------------------------------
+
     print("Instruction")
     print("-" * 60)
 
@@ -224,51 +411,77 @@ def print_ai_decision_context(context):
 
     print()
 
-    print("Deterministic recommendation")
-    print("-" * 60)
+    # --------------------------------------------------------
+    # Economic
+    # --------------------------------------------------------
 
-    recommendation = context.get(
-        "recommendation"
-    )
+    economic = context[
+        "economic"
+    ]
 
-    if recommendation:
-
-        print(recommendation)
-
-    else:
-
-        print("NO_RECOMMENDATION")
-
-    print()
-
-    print("Recommendation reason")
+    print("Economic")
     print("-" * 60)
 
     print(
-        context.get(
-            "recommendation_reason"
-        )
+        f"Transaction value: "
+        f"${economic['transaction_value_usd']}"
+    )
+
+    print(
+        f"Network cost: "
+        f"${economic['network_cost_usd']}"
+    )
+
+    print(
+        f"Status: "
+        f"{economic['status']}"
+    )
+
+    print(
+        f"Source: "
+        f"{economic['source']}"
+    )
+
+    print(
+        f"Confidence: "
+        f"{economic['confidence']}"
     )
 
     print()
 
-    print("AI constraints")
+    # --------------------------------------------------------
+    # Economic gate
+    # --------------------------------------------------------
+
+    economic_gate = context[
+        "economic_gate"
+    ]
+
+    print("Economic Gate")
     print("-" * 60)
 
-    for constraint in context[
-        "ai_constraints"
-    ]:
+    print(
+        f"Status: "
+        f"{economic_gate['status']}"
+    )
 
-        print(
-            f"- {constraint}"
-        )
+    print(
+        f"Reason: "
+        f"{economic_gate['reason']}"
+    )
 
     print()
 
-    print("Routes")
-    print("=" * 60)
+    # --------------------------------------------------------
+    # Routes
+    # --------------------------------------------------------
 
-    for route in context["routes"]:
+    print("Route Decisions")
+    print("-" * 60)
+
+    for route in context[
+        "routes"
+    ]:
 
         print(
             f"{route['route']} | "
@@ -281,10 +494,12 @@ def print_ai_decision_context(context):
             f"{route['status']}"
         )
 
-        print(
-            f"  Reason: "
-            f"{route['reason']}"
-        )
+        if route["reason"]:
+
+            print(
+                f"  Reason: "
+                f"{route['reason']}"
+            )
 
         evidence = route.get(
             "evidence"
@@ -298,13 +513,182 @@ def print_ai_decision_context(context):
             )
 
             print(
+                f"  Evidence type: "
+                f"{evidence['source_type']}"
+            )
+
+            print(
                 f"  Evidence confidence: "
                 f"{evidence['confidence']}"
             )
 
+        cost = route.get(
+            "cost"
+        )
+
+        if cost:
+
+            print(
+                f"  Cost: "
+                f"{cost['value']} "
+                f"{cost['currency']}"
+            )
+
+            print(
+                f"  Cost status: "
+                f"{cost['status']}"
+            )
+
+            print(
+                f"  Cost source: "
+                f"{cost['source']}"
+            )
+
+    print()
+
+    # --------------------------------------------------------
+    # Route ranking
+    # --------------------------------------------------------
+
+    print("Route Ranking")
+    print("-" * 60)
+
+    for route in context[
+        "route_ranking"
+    ]:
+
+        print(
+            f"{route}"
+        )
+
+    print()
+
+    # --------------------------------------------------------
+    # Recommendation
+    # --------------------------------------------------------
+
+    print(
+        "Deterministic Recommendation"
+    )
+
+    print("-" * 60)
+
+    print(
+        f"Recommendation: "
+        f"{context['recommendation']}"
+    )
+
+    print(
+        f"Reason: "
+        f"{context['recommendation_reason']}"
+    )
+
+    print()
+
+    # --------------------------------------------------------
+    # Telegraph intelligence
+    # --------------------------------------------------------
+
+    telegraph = context.get(
+        "telegraph_intelligence"
+    )
+
+    print(
+        "Telegraph Intelligence"
+    )
+
+    print("-" * 60)
+
+    if telegraph is None:
+
+        print(
+            "Status: NOT_AVAILABLE"
+        )
+
+    else:
+
+        print(
+            "Status: AVAILABLE"
+        )
+
+        if isinstance(
+            telegraph,
+            dict,
+        ):
+
+            print(
+                f"Request ID: "
+                f"{telegraph.get('request_id')}"
+            )
+
+            print(
+                f"Generated at: "
+                f"{telegraph.get('generated_at')}"
+            )
+
+            routes = telegraph.get(
+                "routes",
+                {}
+            )
+
+            print(
+                f"Routes: "
+                f"{list(routes.keys())}"
+            )
+
+            for route_id, route in (
+                routes.items()
+            ):
+
+                evidence = route.get(
+                    "evidence",
+                    []
+                )
+
+                print(
+                    f"  {route_id} | "
+                    f"{route.get('asset')} / "
+                    f"{route.get('network')} | "
+                    f"evidence={len(evidence)}"
+                )
+
+    print()
+
+    # --------------------------------------------------------
+    # Provenance
+    # --------------------------------------------------------
+
+    print("Provenance")
+    print("-" * 60)
+
+    for key, value in context[
+        "provenance"
+    ].items():
+
+        print(
+            f"{key}: {value}"
+        )
+
+    print()
+
+    # --------------------------------------------------------
+    # AI constraints
+    # --------------------------------------------------------
+
+    print("AI Constraints")
+    print("-" * 60)
+
+    for constraint in context[
+        "ai_constraints"
+    ]:
+
+        print(
+            f"- {constraint}"
+        )
+
 
 # ============================================================
-# MAIN
+# DEMO
 # ============================================================
 
 if __name__ == "__main__":
@@ -318,6 +702,3 @@ if __name__ == "__main__":
     print_ai_decision_context(
         context
     )
-
-    print()
-    print("Status: READY")

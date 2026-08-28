@@ -14,7 +14,12 @@ AUDIT_FILE = "audit/settlement_audit.json"
 
 def load_settlement_audit():
 
-    with open(AUDIT_FILE, "r") as file:
+    with open(
+        AUDIT_FILE,
+        "r",
+        encoding="utf-8",
+    ) as file:
+
         return json.load(file)
 
 
@@ -127,6 +132,24 @@ def provenance_confidence(
 
 
 # ============================================================
+# TELEGRAPH PROVENANCE CONFIDENCE
+# ============================================================
+
+def telegraph_provenance_confidence(
+    provenance,
+):
+
+    value = provenance.get(
+        "telegraph"
+    )
+
+    if value == "AVAILABLE":
+        return 1.0
+
+    return 0.0
+
+
+# ============================================================
 # BUILD DECISION CONFIDENCE
 # ============================================================
 
@@ -196,6 +219,26 @@ def build_decision_confidence(audit):
     )
 
     # ========================================================
+    # TELEGRAPH
+    #
+    # Telegraph is an intelligence provider only.
+    #
+    # AVAILABLE means Telegraph supplied intelligence.
+    #
+    # It does NOT mean that regulatory, geopolitical,
+    # compliance, or risk information has been validated.
+    #
+    # Therefore Telegraph confidence is reported separately
+    # and does not participate in overall confidence.
+    # ========================================================
+
+    telegraph_confidence = (
+        telegraph_provenance_confidence(
+            provenance
+        )
+    )
+
+    # ========================================================
     # OVERALL CONFIDENCE
     #
     # Conservative rule:
@@ -203,6 +246,11 @@ def build_decision_confidence(audit):
     #
     # This prevents strong economic data from hiding
     # weak policy intelligence.
+    #
+    # IMPORTANT:
+    # Telegraph is intentionally NOT included here.
+    # Telegraph availability is provider availability,
+    # not settlement validation.
     # ========================================================
 
     overall_confidence = min(
@@ -369,6 +417,22 @@ def build_decision_confidence(audit):
                 ),
         },
 
+        "telegraph": {
+
+            "status":
+                provenance.get(
+                    "telegraph"
+                ),
+
+            "confidence":
+                telegraph_confidence,
+
+            "classification":
+                classify_confidence(
+                    telegraph_confidence
+                ),
+        },
+
         "decision_quality":
             decision_quality,
     }
@@ -526,6 +590,32 @@ def print_decision_confidence(
     print(
         f"Classification: "
         f"{risk['classification']}"
+    )
+
+    print()
+
+    # --------------------------------------------------------
+    # Telegraph intelligence
+    # --------------------------------------------------------
+
+    telegraph = confidence["telegraph"]
+
+    print("Telegraph intelligence")
+    print("-" * 55)
+
+    print(
+        f"Status: "
+        f"{telegraph['status']}"
+    )
+
+    print(
+        f"Confidence: "
+        f"{telegraph['confidence']}"
+    )
+
+    print(
+        f"Classification: "
+        f"{telegraph['classification']}"
     )
 
     print()

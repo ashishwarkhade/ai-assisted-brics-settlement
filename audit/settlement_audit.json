@@ -1,9 +1,9 @@
 {
     "audit_version": "9.9",
-    "generated_at_utc": "2026-08-28T08:15:42.623995+00:00",
+    "generated_at_utc": "2026-08-28T09:11:41.822111+00:00",
     "economic": {
-        "transaction_value_usd": 127.155326,
-        "network_cost_usd": 0.0008560472478817974,
+        "transaction_value_usd": 126.809715,
+        "network_cost_usd": 0.0008537204924505096,
         "status": "REAL",
         "source": "Base RPC + CoinGecko",
         "confidence": 1.0
@@ -98,6 +98,510 @@
     "route_ranking": [],
     "recommendation": null,
     "recommendation_reason": "NO_ROUTE_HAS_SUFFICIENT_POLICY_AND_COST_DATA",
+    "telegraph_intelligence": {
+        "request_id": "phase-10.5-telegraph",
+        "generated_at": "2026-08-27T13:11:46.181000+00:00",
+        "routes": {
+            "bitcoin": {
+                "route_id": "bitcoin",
+                "asset": "BTC",
+                "network": "Bitcoin",
+                "evidence": [
+                    {
+                        "metric": "btc_price",
+                        "value": 79303.41,
+                        "unit": "USD",
+                        "source": "Telegraph / coinbase",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_funding_rate_hourly",
+                        "value": 1.25e-05,
+                        "unit": "rate",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_funding_rate_pct_hourly",
+                        "value": 0.00125,
+                        "unit": "percent",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_funding_rate_8h_equiv",
+                        "value": 0.0001,
+                        "unit": "rate",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_mark_price",
+                        "value": 79279,
+                        "unit": "USD",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_funding_open_interest",
+                        "value": 37784.00964,
+                        "unit": "asset",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_long_pct",
+                        "value": 53.34,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_short_pct",
+                        "value": 46.66,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_long_pct_prev_hour",
+                        "value": 53.29,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_open_interest",
+                        "value": 48941.699,
+                        "unit": "asset",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_open_interest_usd",
+                        "value": 3885372188,
+                        "unit": "USD",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_open_interest_change_1h",
+                        "value": -0.05,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_open_interest_change_24h",
+                        "value": 4.06,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_1h_total_usd",
+                        "value": 142134.53,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_1h_longs_usd",
+                        "value": 138875.77,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_1h_shorts_usd",
+                        "value": 3258.76,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_1h_events",
+                        "value": 16,
+                        "unit": "events",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_24h_total_usd",
+                        "value": 47582980.75,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_24h_longs_usd",
+                        "value": 15459057.94,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_24h_shorts_usd",
+                        "value": 32123922.81,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "btc_liquidations_24h_events",
+                        "value": 2912,
+                        "unit": "events",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "market_fear_greed",
+                        "value": 71,
+                        "unit": "index",
+                        "source": "Telegraph / alternative.me",
+                        "timestamp": "2026-08-27T00:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    }
+                ]
+            },
+            "solana": {
+                "route_id": "solana",
+                "asset": "SOL",
+                "network": "Solana",
+                "evidence": [
+                    {
+                        "metric": "sol_price",
+                        "value": 104.52,
+                        "unit": "USD",
+                        "source": "Telegraph / coinbase",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_funding_rate_hourly",
+                        "value": 1.25e-05,
+                        "unit": "rate",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_funding_rate_pct_hourly",
+                        "value": 0.00125,
+                        "unit": "percent",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_funding_rate_8h_equiv",
+                        "value": 0.0001,
+                        "unit": "rate",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_mark_price",
+                        "value": 104.53,
+                        "unit": "USD",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_funding_open_interest",
+                        "value": 6403203.28,
+                        "unit": "asset",
+                        "source": "Telegraph / hyperliquid",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_long_pct",
+                        "value": 67.37,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_short_pct",
+                        "value": 32.63,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_long_pct_prev_hour",
+                        "value": 67.47,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_open_interest",
+                        "value": 7348794.1,
+                        "unit": "asset",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_open_interest_usd",
+                        "value": 768626135,
+                        "unit": "USD",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_open_interest_change_1h",
+                        "value": 0.67,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_open_interest_change_24h",
+                        "value": 15.55,
+                        "unit": "percent",
+                        "source": "Telegraph / bybit_v5_public",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_1h_total_usd",
+                        "value": 93589.4,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_1h_longs_usd",
+                        "value": 0,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_1h_shorts_usd",
+                        "value": 93589.4,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_1h_events",
+                        "value": 22,
+                        "unit": "events",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_24h_total_usd",
+                        "value": 18409365.3,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_24h_longs_usd",
+                        "value": 3669372.93,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_24h_shorts_usd",
+                        "value": 14739992.37,
+                        "unit": "USD",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "sol_liquidations_24h_events",
+                        "value": 2458,
+                        "unit": "events",
+                        "source": "Telegraph / multi_exchange_collector",
+                        "timestamp": "2026-08-27T13:11:46.181000+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    },
+                    {
+                        "metric": "market_fear_greed",
+                        "value": 71,
+                        "unit": "index",
+                        "source": "Telegraph / alternative.me",
+                        "timestamp": "2026-08-27T00:00:00+00:00",
+                        "status": "AVAILABLE",
+                        "confidence": "HIGH",
+                        "validation": "VALID",
+                        "measurement_type": "OBSERVED"
+                    }
+                ]
+            }
+        }
+    },
     "provenance": {
         "economic_input": "REAL",
         "economic_source": "Base RPC + CoinGecko",

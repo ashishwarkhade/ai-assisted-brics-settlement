@@ -285,6 +285,13 @@ def build_settlement_audit(
             recommendation_reason,
 
         # ----------------------------------------------------
+        # Telegraph intelligence
+        # ----------------------------------------------------
+
+        "telegraph_intelligence":
+            telegraph_intelligence,
+
+        # ----------------------------------------------------
         # Provenance
         # ----------------------------------------------------
 
