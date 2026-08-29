@@ -249,8 +249,9 @@ def build_decision_confidence(audit):
     #
     # IMPORTANT:
     # Telegraph is intentionally NOT included here.
-    # Telegraph availability is provider availability,
-    # not settlement validation.
+    #
+    # Telegraph availability represents provider-derived
+    # intelligence availability, not settlement validation.
     # ========================================================
 
     overall_confidence = min(
@@ -263,6 +264,12 @@ def build_decision_confidence(audit):
 
     # ========================================================
     # AUTOMATION READINESS
+    #
+    # Automated recommendation requires strong confidence
+    # across all critical settlement dimensions.
+    #
+    # Telegraph availability alone can never make the
+    # system automation-ready.
     # ========================================================
 
     if (
@@ -431,6 +438,31 @@ def build_decision_confidence(audit):
                 classify_confidence(
                     telegraph_confidence
                 ),
+        },
+
+        # ----------------------------------------------------
+        # Telegraph control metadata
+        #
+        # Telegraph is provider-derived intelligence only.
+        # It has no settlement decision authority.
+        # ----------------------------------------------------
+
+        "telegraph_control": {
+
+            "role":
+                "PROVIDER_DERIVED_INTELLIGENCE_ONLY",
+
+            "decision_authority":
+                "NONE",
+
+            "affects_eligibility":
+                False,
+
+            "affects_ranking":
+                False,
+
+            "affects_recommendation":
+                False,
         },
 
         "decision_quality":
@@ -616,6 +648,44 @@ def print_decision_confidence(
     print(
         f"Classification: "
         f"{telegraph['classification']}"
+    )
+
+    print()
+
+    # --------------------------------------------------------
+    # Telegraph control
+    # --------------------------------------------------------
+
+    telegraph_control = confidence[
+        "telegraph_control"
+    ]
+
+    print("Telegraph control")
+    print("-" * 55)
+
+    print(
+        f"Role: "
+        f"{telegraph_control['role']}"
+    )
+
+    print(
+        f"Decision authority: "
+        f"{telegraph_control['decision_authority']}"
+    )
+
+    print(
+        f"Affects eligibility: "
+        f"{telegraph_control['affects_eligibility']}"
+    )
+
+    print(
+        f"Affects ranking: "
+        f"{telegraph_control['affects_ranking']}"
+    )
+
+    print(
+        f"Affects recommendation: "
+        f"{telegraph_control['affects_recommendation']}"
     )
 
     print()
