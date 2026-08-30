@@ -2,6 +2,7 @@ def build_decision_input(
     intelligence,
     regulatory_evidence=None,
     telegraph_intelligence=None,
+    payment_intent=None,
 ):
 
     """
@@ -10,6 +11,10 @@ def build_decision_input(
 
     Regulatory evidence is optional so existing
     Phase 8.15 behavior remains unchanged.
+
+    PaymentIntent is optional so existing callers
+    remain compatible while Phase E integration
+    is introduced incrementally.
     """
 
     decision_input = {
@@ -49,6 +54,16 @@ def build_decision_input(
             telegraph_intelligence
         )
 
+    # --------------------------------------------------------
+    # PHASE E.1 — PAYMENT INTENT
+    # --------------------------------------------------------
+
+    if payment_intent is not None:
+
+        decision_input["payment_intent"] = (
+            payment_intent
+        )
+
     return decision_input
 
 
@@ -58,17 +73,162 @@ if __name__ == "__main__":
         build_transaction_intelligence
     )
 
+    from payment_intent import (
+        build_payment_intent,
+        validate_payment_intent,
+    )
+
+    # --------------------------------------------------------
+    # REAL TRANSACTION INTELLIGENCE
+    # --------------------------------------------------------
+
     intelligence = (
         build_transaction_intelligence()
     )
 
-    decision_input = build_decision_input(
-        intelligence
+    # --------------------------------------------------------
+    # PHASE E.2 — BUILD PAYMENT INTENT
+    # --------------------------------------------------------
+
+    payment_intent = build_payment_intent(
+        amount=50000,
+        source_currency="USD",
+        destination_currency="USD",
+        counterparty="counterparty-A",
     )
 
+    payment_intent = (
+        validate_payment_intent(
+            payment_intent
+        )
+    )
 
-    print("=== DECISION INPUT ===")
+    # --------------------------------------------------------
+    # VERIFY PAYMENT INTENT
+    # --------------------------------------------------------
 
-    for key, value in decision_input.items():
+    if (
+        payment_intent["metadata"]["status"]
+        != "VALIDATED"
+    ):
 
-        print(f"{key}: {value}")
+        raise ValueError(
+            "PaymentIntent validation failed"
+        )
+
+    # --------------------------------------------------------
+    # BUILD DECISION INPUT
+    # --------------------------------------------------------
+
+    decision_input = build_decision_input(
+        intelligence,
+        payment_intent=payment_intent,
+    )
+
+    # --------------------------------------------------------
+    # VERIFY PAYMENT INTENT INTEGRATION
+    # --------------------------------------------------------
+
+    if (
+        "payment_intent"
+        not in decision_input
+    ):
+
+        raise ValueError(
+            "PaymentIntent was not included "
+            "in DecisionInput"
+        )
+
+    if (
+        decision_input["payment_intent"]
+        is not payment_intent
+    ):
+
+        raise ValueError(
+            "DecisionInput does not preserve "
+            "the canonical PaymentIntent"
+        )
+
+    # --------------------------------------------------------
+    # VERIFY ROUTE IS NOT SELECTED BY INTENT
+    # --------------------------------------------------------
+
+    if (
+        payment_intent[
+            "settlement_preferences"
+        ]["asset"]
+        is not None
+    ):
+
+        raise ValueError(
+            "PaymentIntent unexpectedly "
+            "selected a settlement asset"
+        )
+
+    if (
+        payment_intent[
+            "settlement_preferences"
+        ]["network"]
+        is not None
+    ):
+
+        raise ValueError(
+            "PaymentIntent unexpectedly "
+            "selected a settlement network"
+        )
+
+    # --------------------------------------------------------
+    # OUTPUT
+    # --------------------------------------------------------
+
+    print("=== PHASE E.2 PAYMENT INTENT ===")
+
+    print(
+        f"Intent ID: "
+        f"{payment_intent['intent_id']}"
+    )
+
+    print(
+        f"Status: "
+        f"{payment_intent['metadata']['status']}"
+    )
+
+    print(
+        f"Amount: "
+        f"{payment_intent['transaction']['amount']}"
+    )
+
+    print(
+        f"Source currency: "
+        f"{payment_intent['transaction']['source_currency']}"
+    )
+
+    print(
+        f"Destination currency: "
+        f"{payment_intent['transaction']['destination_currency']}"
+    )
+
+    print(
+        f"Counterparty: "
+        f"{payment_intent['counterparty']['identifier']}"
+    )
+
+    print(
+        "Settlement asset: "
+        f"{payment_intent['settlement_preferences']['asset']}"
+    )
+
+    print(
+        "Settlement network: "
+        f"{payment_intent['settlement_preferences']['network']}"
+    )
+
+    print()
+
+    print(
+        "PaymentIntent → DecisionInput: PASS"
+    )
+
+    print(
+        "Intent route selection: NOT PERFORMED"
+    )

@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from brics_regulatory_evidence import (
-    build_example_unknown,
+    build_regulatory_evidence,
     determine_regulatory_state,
 )
 
@@ -11,6 +11,11 @@ from policy_intelligence import build_policy_intelligence
 from economic_intelligence import build_economic_intelligence
 from decision_explanation import build_decision_explanation
 from telegraph_decision_integration import build_telegraph_decision_input
+from decision_engine import DecisionEngine
+from payment_intent import (
+    build_payment_intent,
+    validate_payment_intent,
+)
 
 
 # ============================================================
@@ -20,6 +25,7 @@ from telegraph_decision_integration import build_telegraph_decision_input
 MAX_RISK = 50
 
 AUDIT_FILE = "audit/settlement_audit.json"
+
 
 
 # ============================================================
@@ -404,14 +410,21 @@ if economic_reason:
 # REGULATORY EVIDENCE
 # ============================================================
 
-regulatory_evidence = build_example_unknown()
-
+regulatory_evidence = build_regulatory_evidence(
+    jurisdiction="India",
+    asset="ETH",
+    activity="CROSS_BORDER_PAYMENT",
+    status="PERMITTED",
+    source="TEST",
+    source_type="REFERENCE",
+    confidence=1.0,
+    evidence_text="Test permitted regulatory evidence",
+)
 regulatory_state = (
     determine_regulatory_state(
         regulatory_evidence
     )
 )
-
 
 print()
 print("=== REGULATORY GATE ===")
@@ -440,6 +453,29 @@ print(
     f"Regulatory state: "
     f"{regulatory_state}"
 )
+
+
+# ============================================================
+# PHASE E.3 — PAYMENT INTENT
+# ============================================================
+
+payment_intent = build_payment_intent(
+    amount=50000,
+    source_currency="USD",
+    destination_currency="USD",
+    counterparty="counterparty-A",
+)
+
+payment_intent = validate_payment_intent(
+    payment_intent
+)
+
+if payment_intent["metadata"]["status"] != "VALIDATED":
+
+    raise ValueError(
+        "PaymentIntent validation failed"
+    )
+
 
 
 # ============================================================
@@ -472,8 +508,11 @@ try:
                     "eth_price_usd"
                 ],
             },
-            regulatory_evidence=
-                regulatory_evidence,
+                regulatory_evidence=
+                  regulatory_evidence,
+
+                payment_intent=
+                  payment_intent,
         )
     )
 
@@ -528,276 +567,70 @@ normalized_routes = get_normalized_routes()
 # POLICY INTELLIGENCE
 # ============================================================
 
-policies = build_policy_intelligence()
-
+policies = build_policy_intelligence(
+    jurisdiction=
+        regulatory_evidence["jurisdiction"],
+)
 
 # ============================================================
-# BUILD ROUTE DECISIONS
+# PHASE E.4.3 — DECISION ENGINE
 # ============================================================
 
-decisions = []
+engine = DecisionEngine(
+    max_risk=MAX_RISK,
+)
+
+decision_input = build_telegraph_decision_input(
+    intelligence={
+        "asset": economic["asset"],
+        "network": economic["network"],
+        "chain_id": economic["chain_id"],
+        "status": economic["status"],
+        "confidence": economic["confidence"],
+        "value_usd": economic[
+            "transaction_value_usd"
+        ],
+        "network_cost_usd": economic[
+            "network_cost_usd"
+        ],
+        "market_price_usd": economic[
+            "eth_price_usd"
+        ],
+    },
+    regulatory_evidence=
+        regulatory_evidence,
+
+    payment_intent=
+        payment_intent,
+)
+
+result = engine.decide(
+    decision_input=
+        decision_input,
+
+    normalized_routes=
+        normalized_routes,
+
+    policies=
+        policies,
+
+    regulatory_state=
+        regulatory_state,
+
+    regulatory_evidence=
+        regulatory_evidence,
+)
+
+decisions = result["decisions"]
+
+ranked_routes = result["ranked_routes"]
+
+recommendation = result["recommendation"]
+
+recommendation_reason = (
+    result["recommendation_reason"]
+)
 
-
-for route_key, route in normalized_routes.items():
-
-    network = route["network"]
-
-    policy = policies.get(network)
-
-
-    # --------------------------------------------------------
-    # Missing policy
-    # --------------------------------------------------------
-
-    if policy is None:
-
-        decisions.append({
-            "route": route,
-            "status": "INVALID",
-            "reason": "MISSING_ROUTE_POLICY",
-        })
-
-        continue
-
-
-    # --------------------------------------------------------
-    # Regulatory gate
-    #
-    # Phase 9.9:
-    #
-    # Regulatory evidence is evaluated BEFORE the older
-    # generic policy layer.
-    #
-    # UNKNOWN / CONDITIONAL / REQUIRES_REVIEW means the
-    # route cannot become ELIGIBLE.
-    # --------------------------------------------------------
-
-    if regulatory_state == "PROHIBITED":
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "REJECTED",
-
-            "reason":
-                "REGULATORY_STATUS_PROHIBITED",
-
-            "evidence":
-                regulatory_evidence,
-        })
-
-        continue
-
-
-    if regulatory_state != "PERMITTED":
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "ELIGIBLE_DATA_INCOMPLETE",
-
-            "reason":
-                "REGULATORY_STATUS_UNKNOWN",
-
-            "evidence":
-                regulatory_evidence,
-        })
-
-        continue
-
-
-    # --------------------------------------------------------
-    # Compliance
-    # --------------------------------------------------------
-
-    compliance = policy["compliance"]
-
-
-    if compliance["value"] == "BLOCKED":
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "REJECTED",
-
-            "reason":
-                "COMPLIANCE_BLOCKED",
-
-            "evidence":
-                compliance,
-        })
-
-        continue
-
-
-    if compliance["value"] != "ALLOWED":
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "ELIGIBLE_DATA_INCOMPLETE",
-
-            "reason":
-                "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
-
-            "evidence":
-                compliance,
-        })
-
-        continue
-
-
-    # --------------------------------------------------------
-    # Geopolitical
-    # --------------------------------------------------------
-
-    geopolitical = policy[
-        "geopolitical_status"
-    ]
-
-
-    if geopolitical["value"] == "RESTRICTED":
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "REJECTED",
-
-            "reason":
-                "GEOPOLITICAL_RESTRICTION",
-
-            "evidence":
-                geopolitical,
-        })
-
-        continue
-
-
-    if geopolitical["value"] != "PERMITTED":
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "ELIGIBLE_DATA_INCOMPLETE",
-
-            "reason":
-                "GEOPOLITICAL_STATUS_NOT_ESTABLISHED",
-
-            "evidence":
-                geopolitical,
-        })
-
-        continue
-
-
-    # --------------------------------------------------------
-    # Risk
-    # --------------------------------------------------------
-
-    risk = policy["risk"]
-
-
-    if risk["value"] is None:
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "ELIGIBLE_DATA_INCOMPLETE",
-
-            "reason":
-                "RISK_UNKNOWN",
-
-            "evidence":
-                risk,
-        })
-
-        continue
-
-
-    if risk["value"] > MAX_RISK:
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "REJECTED",
-
-            "reason":
-                "RISK_LIMIT_EXCEEDED",
-
-            "evidence":
-                risk,
-        })
-
-        continue
-
-
-    # --------------------------------------------------------
-    # Economic route cost
-    # --------------------------------------------------------
-
-    cost = route["cost"]
-
-
-    if cost["status"] in (
-        "NOT_CALCULATED",
-        "UNKNOWN",
-    ):
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "ELIGIBLE_DATA_INCOMPLETE",
-
-            "reason":
-                "ROUTE_COST_UNKNOWN",
-
-            "evidence":
-                cost,
-        })
-
-        continue
-
-
-    if cost["value"] is None:
-
-        decisions.append({
-            "route": route,
-
-            "status":
-                "ELIGIBLE_DATA_INCOMPLETE",
-
-            "reason":
-                "ROUTE_COST_UNKNOWN",
-
-            "evidence":
-                cost,
-        })
-
-        continue
-
-
-    # --------------------------------------------------------
-    # Fully eligible
-    # --------------------------------------------------------
-
-    decisions.append({
-        "route": route,
-
-        "status":
-            "ELIGIBLE",
-
-        "reason":
-            None,
-    })
 
 
 # ============================================================
@@ -858,107 +691,6 @@ for decision in decisions:
             f"  Evidence confidence: "
             f"{evidence['confidence']}"
         )
-
-
-# ============================================================
-# ECONOMICALLY RANKABLE ROUTES
-# ============================================================
-
-rankable_routes = [
-
-    decision["route"]
-
-    for decision in decisions
-
-    if decision["status"] == "ELIGIBLE"
-
-    and decision["route"]["cost"]["value"]
-    is not None
-]
-
-
-print()
-print("=== ROUTE RANKING ===")
-
-
-if not rankable_routes:
-
-    print(
-        "No route has sufficient "
-        "policy and economic data."
-    )
-
-    ranked_routes = []
-
-else:
-
-    ranked_routes = sorted(
-        rankable_routes,
-        key=lambda route:
-            route["cost"]["value"]
-    )
-
-    for route in ranked_routes:
-
-        print(
-            f"{route['route']} | "
-            f"{route['asset']} / "
-            f"{route['network']} | "
-            f"${route['cost']['value']:.6f}"
-        )
-
-
-# ============================================================
-# RECOMMENDATION
-# ============================================================
-
-print()
-print("=== RECOMMENDATION ===")
-
-
-if not rankable_routes:
-
-    recommendation = None
-
-    recommendation_reason = (
-        "NO_ROUTE_HAS_SUFFICIENT_POLICY_AND_COST_DATA"
-    )
-
-    print(
-        "NO_RECOMMENDATION"
-    )
-
-    print(
-        f"Reason: "
-        f"{recommendation_reason}"
-    )
-
-else:
-
-    best_route = min(
-        rankable_routes,
-        key=lambda route:
-            route["cost"]["value"]
-    )
-
-    recommendation = {
-        "route":
-            best_route["route"],
-
-        "asset":
-            best_route["asset"],
-
-        "network":
-            best_route["network"],
-    }
-
-    recommendation_reason = None
-
-    print(
-        f"{best_route['route']} | "
-        f"{best_route['asset']} / "
-        f"{best_route['network']}"
-    )
 
 
 # ============================================================

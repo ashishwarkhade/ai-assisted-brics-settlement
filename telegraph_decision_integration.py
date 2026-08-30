@@ -58,6 +58,7 @@ def load_telegraph_trade_context(
 def build_telegraph_decision_input(
     intelligence,
     regulatory_evidence=None,
+    payment_intent=None,
     input_file="/tmp/telegraph_trade_context.txt",
     request_id="phase-10.5-telegraph",
 ):
@@ -66,6 +67,10 @@ def build_telegraph_decision_input(
     provider-independent decision-input contract.
 
     Telegraph remains an intelligence provider.
+
+    PaymentIntent describes the user request and is
+    passed through to the provider-independent
+    decision-input contract.
 
     This function does NOT:
         - make settlement decisions
@@ -91,6 +96,7 @@ def build_telegraph_decision_input(
         intelligence=intelligence,
         regulatory_evidence=regulatory_evidence,
         telegraph_intelligence=telegraph_intelligence,
+        payment_intent=payment_intent,
     )
 
 
@@ -100,15 +106,52 @@ if __name__ == "__main__":
         build_economic_intelligence,
     )
 
+    from payment_intent import (
+        build_payment_intent,
+        validate_payment_intent,
+    )
+
+    # --------------------------------------------------------
+    # REAL ECONOMIC INTELLIGENCE
+    # --------------------------------------------------------
+
     economic = build_economic_intelligence()
+
+    # --------------------------------------------------------
+    # PHASE E.3 — BUILD PAYMENT INTENT
+    # --------------------------------------------------------
+
+    payment_intent = build_payment_intent(
+        amount=50000,
+        source_currency="USD",
+        destination_currency="USD",
+        counterparty="counterparty-A",
+    )
+
+    payment_intent = validate_payment_intent(
+        payment_intent
+    )
+
+    if (
+        payment_intent["metadata"]["status"]
+        != "VALIDATED"
+    ):
+
+        raise ValueError(
+            "PaymentIntent validation failed"
+        )
+
+    # --------------------------------------------------------
+    # BUILD TELEGRAPH DECISION INPUT
+    # --------------------------------------------------------
 
     decision_input = build_telegraph_decision_input(
         intelligence={
             "asset": "ETH",
             "network": "Base",
             "chain_id": 8453,
-            "status": "CONFIRMED",
-            "confidence": "HIGH",
+            "status": economic["status"],
+            "confidence": economic["confidence"],
             "value_usd": economic[
                 "transaction_value_usd"
             ],
@@ -116,13 +159,52 @@ if __name__ == "__main__":
                 "network_cost_usd"
             ],
             "market_price_usd": economic[
-                "asset_price_usd"
+                "eth_price_usd"
             ],
         },
+        payment_intent=payment_intent,
     )
+
+    # --------------------------------------------------------
+    # VERIFY PAYMENT INTENT PRESERVATION
+    # --------------------------------------------------------
+
+    if (
+        "payment_intent"
+        not in decision_input
+    ):
+
+        raise ValueError(
+            "PaymentIntent was not preserved "
+            "in Telegraph DecisionInput"
+        )
+
+    if (
+        decision_input["payment_intent"]
+        is not payment_intent
+    ):
+
+        raise ValueError(
+            "Telegraph integration did not preserve "
+            "the canonical PaymentIntent"
+        )
+
+    # --------------------------------------------------------
+    # OUTPUT
+    # --------------------------------------------------------
 
     print(
         "=== TELEGRAPH DECISION INPUT INTEGRATION ==="
+    )
+
+    print(
+        f"Intent ID: "
+        f"{decision_input['payment_intent']['intent_id']}"
+    )
+
+    print(
+        f"Intent status: "
+        f"{decision_input['payment_intent']['metadata']['status']}"
     )
 
     print(
@@ -156,6 +238,10 @@ if __name__ == "__main__":
         )
 
     print()
+
+    print(
+        "PaymentIntent → Telegraph DecisionInput: PASS"
+    )
 
     print(
         "Settlement decision: NOT MADE"

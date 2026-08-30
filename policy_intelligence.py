@@ -2,10 +2,13 @@ from data_provenance import add_provenance
 from policy_source import build_policy_source_data
 
 
-def build_policy_intelligence():
+def build_policy_intelligence(
+    jurisdiction=None,
+):
 
-    source_data = build_policy_source_data()
-
+    source_data = build_policy_source_data(
+        jurisdiction=jurisdiction,
+    )
     return {
         "Bitcoin": {
             "risk": add_provenance(
