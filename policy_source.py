@@ -41,7 +41,7 @@ def get_base_geopolitical_policy():
     )
 
 
-def build_policy_source_data():
+def build_policy_source_data(jurisdiction=None):
 
     return {
         "Bitcoin": {
