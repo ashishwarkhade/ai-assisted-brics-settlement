@@ -69,6 +69,17 @@ The demonstrated execution produced:
 Bitcoin | ELIGIBLE_DATA_INCOMPLETE
 Base | ELIGIBLE_DATA_INCOMPLETE
 
+## 5. Recommendation Boundary
+
+The demonstrated execution does not produce a settlement recommendation because the route-level compliance evidence remains incomplete.
+
+```text
+Bitcoin | ELIGIBLE_DATA_INCOMPLETE
+Base | ELIGIBLE_DATA_INCOMPLETE
+
+Reason:
+COMPLIANCE_REQUIRES_JURISDICTION_REVIEW
+
 ## 6. Telegraph Intelligence vs Decision Routes
 
 Telegraph MCP and the deterministic route input serve different architectural roles.
