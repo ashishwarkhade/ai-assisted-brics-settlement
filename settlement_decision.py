@@ -6,16 +6,14 @@ from brics_regulatory_evidence import (
     determine_regulatory_state,
 )
 
+from settlement_path_discovery import build_candidate_path
 from normalized_routes import get_normalized_routes
 from policy_intelligence import build_policy_intelligence
 from economic_intelligence import build_economic_intelligence
 from decision_explanation import build_decision_explanation
 from telegraph_decision_integration import build_telegraph_decision_input
 from decision_engine import DecisionEngine
-from payment_intent import (
-    build_payment_intent,
-    validate_payment_intent,
-)
+from payment_intent import validate_payment_intent
 
 
 # ============================================================
@@ -25,7 +23,6 @@ from payment_intent import (
 MAX_RISK = 50
 
 AUDIT_FILE = "audit/settlement_audit.json"
-
 
 
 # ============================================================
@@ -62,31 +59,16 @@ def build_evidence_audit_record(evidence):
 
     record = {}
 
-    # --------------------------------------------------------
-    # Common provenance fields
-    # --------------------------------------------------------
-
     for field in (
         "source",
         "source_type",
         "confidence",
     ):
-
         if field in evidence:
-
             record[field] = evidence[field]
 
-    # --------------------------------------------------------
-    # Phase 8 policy evidence
-    # --------------------------------------------------------
-
     if "value" in evidence:
-
         record["value"] = evidence["value"]
-
-    # --------------------------------------------------------
-    # Phase 9 regulatory evidence
-    # --------------------------------------------------------
 
     for field in (
         "jurisdiction",
@@ -96,9 +78,7 @@ def build_evidence_audit_record(evidence):
         "regulatory_status",
         "evidence_text",
     ):
-
         if field in evidence:
-
             record[field] = evidence[field]
 
     return record
@@ -109,6 +89,7 @@ def build_evidence_audit_record(evidence):
 # ============================================================
 
 def build_settlement_audit(
+    payment_intent,
     economic,
     economic_status,
     economic_reason,
@@ -119,15 +100,18 @@ def build_settlement_audit(
     recommendation,
     recommendation_reason,
     telegraph_intelligence=None,
+    settlement_path=None,
 ):
     """
     Build the complete settlement audit record.
 
     The audit records:
 
+        - payment intent
         - economic intelligence
         - regulatory evidence
         - regulatory state
+        - candidate settlement path
         - route decisions
         - route ranking
         - recommendation
@@ -151,10 +135,6 @@ def build_settlement_audit(
             "reason": decision["reason"],
         }
 
-        # ----------------------------------------------------
-        # Decision evidence
-        # ----------------------------------------------------
-
         if "evidence" in decision:
 
             item["evidence"] = (
@@ -163,10 +143,6 @@ def build_settlement_audit(
                 )
             )
 
-        # ----------------------------------------------------
-        # Decision explanation
-        # ----------------------------------------------------
-
         if "explanation" in decision:
 
             item["explanation"] = (
@@ -174,10 +150,6 @@ def build_settlement_audit(
             )
 
         route_decisions.append(item)
-
-    # --------------------------------------------------------
-    # Route ranking
-    # --------------------------------------------------------
 
     route_ranking = []
 
@@ -190,12 +162,11 @@ def build_settlement_audit(
             "cost_usd": route["cost"]["value"],
         })
 
-    # --------------------------------------------------------
-    # Complete audit
-    # --------------------------------------------------------
-
     audit = {
         "audit_version": "9.9",
+
+        "payment_intent":
+            payment_intent,
 
         "generated_at_utc":
             datetime.now(timezone.utc).isoformat(),
@@ -205,8 +176,11 @@ def build_settlement_audit(
         # ----------------------------------------------------
 
         "economic": {
-            "transaction_value_usd":
-                economic["transaction_value_usd"],
+            "user_transaction_value_usd":
+                economic["user_transaction_value_usd"],
+
+            "observed_transaction_value_usd":
+                economic["observed_transaction_value_usd"],
 
             "network_cost_usd":
                 economic["network_cost_usd"],
@@ -219,6 +193,16 @@ def build_settlement_audit(
 
             "confidence":
                 economic["confidence"],
+
+            "user_transaction_amount":
+                economic["user_transaction_amount"],
+
+            "user_transaction_currency":
+                economic["user_transaction_currency"],
+
+            "observed_transaction_value_eth":
+                economic["observed_transaction_value_eth"],
+
         },
 
         # ----------------------------------------------------
@@ -265,6 +249,13 @@ def build_settlement_audit(
             "evidence_text":
                 regulatory_evidence["evidence_text"],
         },
+
+        # ----------------------------------------------------
+        # Candidate settlement path
+        # ----------------------------------------------------
+
+        "settlement_path":
+            settlement_path,
 
         # ----------------------------------------------------
         # Route decisions
@@ -327,6 +318,9 @@ def build_settlement_audit(
                 "AVAILABLE"
                 if telegraph_intelligence is not None
                 else "UNAVAILABLE",
+
+            "settlement_path":
+                "DISCOVERY",
         },
     }
 
@@ -334,475 +328,671 @@ def build_settlement_audit(
 
 
 # ============================================================
-# REAL ECONOMIC INPUT
+# RUN SETTLEMENT
 # ============================================================
 
-economic = build_economic_intelligence()
+def run_settlement(payment_intent):
+    """
+    Run the deterministic settlement pipeline using a
+    caller-supplied PaymentIntent.
 
-transaction_value_usd = (
-    economic["transaction_value_usd"]
-)
+    User/Business input owns PaymentIntent construction.
 
-network_cost_usd = (
-    economic["network_cost_usd"]
-)
+    This function owns settlement evaluation.
 
+    It does not:
+        - choose a settlement route
+        - override the DecisionEngine
+        - create regulatory approval
+        - allow Telegraph to make a settlement decision
 
-print("=== REAL ECONOMIC INPUT ===")
+    Settlement path discovery supplies candidate-path
+    intelligence only. UNKNOWN evidence remains UNKNOWN
+    until independently validated evidence is available.
+    """
 
-print(
-    f"Transaction value: "
-    f"${transaction_value_usd:.2f}"
-)
-
-print(
-    f"Network cost: "
-    f"${network_cost_usd:.6f}"
-)
-
-print(
-    f"Source: "
-    f"{economic['source']}"
-)
-
-print(
-    f"Confidence: "
-    f"{economic['confidence']}"
-)
-
-
-# ============================================================
-# ECONOMIC GATE
-# ============================================================
-
-if network_cost_usd > transaction_value_usd:
-
-    economic_status = "REJECTED"
-
-    economic_reason = (
-        "NETWORK_COST_EXCEEDS_TRANSACTION_VALUE"
+    payment_intent = validate_payment_intent(
+        payment_intent
     )
 
-else:
+    if payment_intent["metadata"]["status"] != "VALIDATED":
 
-    economic_status = "PASSED"
+        raise ValueError(
+            "PaymentIntent validation failed"
+        )
 
-    economic_reason = None
+    source_jurisdiction = (
+        payment_intent["corridor"]["source_jurisdiction"]
+    )
 
+    destination_jurisdiction = (
+        payment_intent["corridor"]["destination_jurisdiction"]
+    )
 
-print()
-print("=== ECONOMIC GATE ===")
+    if not source_jurisdiction:
+        raise ValueError(
+            "PaymentIntent source jurisdiction is required"
+        )
 
-print(
-    f"Status: "
-    f"{economic_status}"
-)
+    if not destination_jurisdiction:
+        raise ValueError(
+            "PaymentIntent destination jurisdiction is required"
+        )
 
-if economic_reason:
+    # ============================================================
+    # CANDIDATE SETTLEMENT PATH
+    # ============================================================
+
+    # Discovery does not recommend a route.
+    # It records the corridor and leaves unsupported evidence
+    # explicitly UNKNOWN.
+    settlement_path = build_candidate_path(
+        source=source_jurisdiction,
+        destination=destination_jurisdiction,
+        asset="ETH",
+    )
+
+    print()
+    print("=== CANDIDATE SETTLEMENT PATH ===")
 
     print(
-        f"Reason: "
-        f"{economic_reason}"
+        f"Source jurisdiction: "
+        f"{settlement_path['source_jurisdiction']}"
     )
 
-
-# ============================================================
-# REGULATORY EVIDENCE
-# ============================================================
-
-regulatory_evidence = build_regulatory_evidence(
-    jurisdiction="India",
-    asset="ETH",
-    activity="CROSS_BORDER_PAYMENT",
-    status="PERMITTED",
-    source="TEST",
-    source_type="REFERENCE",
-    confidence=1.0,
-    evidence_text="Test permitted regulatory evidence",
-)
-regulatory_state = (
-    determine_regulatory_state(
-        regulatory_evidence
-    )
-)
-
-print()
-print("=== REGULATORY GATE ===")
-
-print(
-    f"Jurisdiction: "
-    f"{regulatory_evidence['jurisdiction']}"
-)
-
-print(
-    f"Asset: "
-    f"{regulatory_evidence['asset']}"
-)
-
-print(
-    f"Activity: "
-    f"{regulatory_evidence['activity']}"
-)
-
-print(
-    f"Status: "
-    f"{regulatory_evidence['status']}"
-)
-
-print(
-    f"Regulatory state: "
-    f"{regulatory_state}"
-)
-
-
-# ============================================================
-# PHASE E.3 — PAYMENT INTENT
-# ============================================================
-
-payment_intent = build_payment_intent(
-    amount=50000,
-    source_currency="USD",
-    destination_currency="USD",
-    counterparty="counterparty-A",
-)
-
-payment_intent = validate_payment_intent(
-    payment_intent
-)
-
-if payment_intent["metadata"]["status"] != "VALIDATED":
-
-    raise ValueError(
-        "PaymentIntent validation failed"
+    print(
+        f"Destination jurisdiction: "
+        f"{settlement_path['destination_jurisdiction']}"
     )
 
+    print(
+        f"Infrastructure: "
+        f"{settlement_path['infrastructure']}"
+    )
 
+    print(
+        f"Asset: "
+        f"{settlement_path['asset']}"
+    )
 
-# ============================================================
-# PHASE 10.5 — TELEGRAPH DECISION INPUT
-# ============================================================
+    print(
+        f"Regulatory evidence state: "
+        f"{settlement_path['regulatory_status']}"
+    )
 
-# Telegraph is an intelligence provider only.
-# Its normalized output is passed into the provider-independent
-# decision-input contract. No settlement decision is made here.
+    print(
+        f"Asset linkage state: "
+        f"{settlement_path['linkage_status']}"
+    )
 
-telegraph_intelligence = None
+    print(
+        f"Cross-border capability state: "
+        f"{settlement_path['cross_border_status']}"
+    )
 
-try:
+    # ============================================================
+    # REAL ECONOMIC INPUT
+    # ============================================================
 
-    telegraph_decision_input = (
-        build_telegraph_decision_input(
-            intelligence={
-                "asset": economic["asset"],
-                "network": economic["network"],
-                "chain_id": economic["chain_id"],
-                "status": economic["status"],
-                "confidence": economic["confidence"],
-                "value_usd": economic[
-                    "transaction_value_usd"
-                ],
-                "network_cost_usd": economic[
-                    "network_cost_usd"
-                ],
-                "market_price_usd": economic[
-                    "eth_price_usd"
-                ],
-            },
+    economic = build_economic_intelligence(
+        payment_intent
+    )
+
+    transaction_value_usd = (
+        economic["user_transaction_value_usd"]
+    )
+
+    network_cost_usd = (
+        economic["network_cost_usd"]
+    )
+
+    print()
+    print("=== REAL ECONOMIC INPUT ===")
+
+    print(
+        f"User transaction value: "
+        f"${transaction_value_usd:.2f}"
+    )
+
+    print(
+        f"Observed blockchain transaction value: "
+        f"${economic['observed_transaction_value_usd']:.2f}"
+    )
+
+    print(
+        f"Network cost: "
+        f"${network_cost_usd:.6f}"
+    )
+
+    print(
+        f"Source: "
+        f"{economic['source']}"
+    )
+
+    print(
+        f"Confidence: "
+        f"{economic['confidence']}"
+    )
+
+    # ============================================================
+    # ECONOMIC GATE
+    # ============================================================
+
+    if network_cost_usd > transaction_value_usd:
+
+        economic_status = "REJECTED"
+
+        economic_reason = (
+            "NETWORK_COST_EXCEEDS_TRANSACTION_VALUE"
+        )
+
+    else:
+
+        economic_status = "PASSED"
+
+        economic_reason = None
+
+    print()
+    print("=== ECONOMIC GATE ===")
+
+    print(
+        f"Status: "
+        f"{economic_status}"
+    )
+
+    if economic_reason:
+
+        print(
+            f"Reason: "
+            f"{economic_reason}"
+        )
+
+    # ============================================================
+    # REGULATORY EVIDENCE
+    # ============================================================
+
+    # IMPORTANT:
+    #
+    # The candidate path has no validated regulatory evidence.
+    # Therefore UNKNOWN is represented explicitly.
+    #
+    # This does not infer permission or prohibition.
+    # The deterministic DecisionEngine remains authoritative.
+
+    regulatory_evidence = build_regulatory_evidence(
+        jurisdiction=source_jurisdiction,
+        asset=settlement_path["asset"],
+        activity="CROSS_BORDER_PAYMENT",
+        status=settlement_path["regulatory_status"],
+        source="UNAVAILABLE",
+        source_type="UNKNOWN",
+        confidence=0.0,
+        evidence_text=(
+            "No jurisdiction-specific validated regulatory "
+            "evidence has been supplied for this corridor."
+        ),
+    )
+
+    regulatory_state = (
+        determine_regulatory_state(
+            regulatory_evidence
+        )
+    )
+
+    print()
+    print("=== REGULATORY GATE ===")
+
+    print(
+        f"Jurisdiction: "
+        f"{regulatory_evidence['jurisdiction']}"
+    )
+
+    print(
+        f"Asset: "
+        f"{regulatory_evidence['asset']}"
+    )
+
+    print(
+        f"Activity: "
+        f"{regulatory_evidence['activity']}"
+    )
+
+    print(
+        f"Status: "
+        f"{regulatory_evidence['status']}"
+    )
+
+    print(
+        f"Regulatory state: "
+        f"{regulatory_state}"
+    )
+
+    # ============================================================
+    # PHASE 10.5 — TELEGRAPH DECISION INPUT
+    # ============================================================
+
+    # Telegraph is an intelligence provider only.
+    # Its normalized output is passed into the provider-independent
+    # decision-input contract. No settlement decision is made here.
+
+    telegraph_intelligence = None
+
+    try:
+
+        telegraph_decision_input = (
+            build_telegraph_decision_input(
+                intelligence={
+                    "asset": economic["asset"],
+                    "network": economic["network"],
+                    "chain_id": economic["chain_id"],
+                    "status": economic["status"],
+                    "confidence": economic["confidence"],
+                    "value_usd": economic[
+                        "user_transaction_value_usd"
+                    ],
+                    "network_cost_usd": economic[
+                        "network_cost_usd"
+                    ],
+                    "market_price_usd": economic[
+                        "eth_price_usd"
+                    ],
+                },
                 regulatory_evidence=
-                  regulatory_evidence,
-
+                    regulatory_evidence,
                 payment_intent=
-                  payment_intent,
+                    payment_intent,
+            )
         )
+
+        telegraph_intelligence = (
+            telegraph_decision_input.get(
+                "telegraph_intelligence"
+            )
+        )
+
+        print()
+        print("=== TELEGRAPH INTELLIGENCE ===")
+
+        if telegraph_intelligence is not None:
+
+            print(
+                f"Request ID: "
+                f"{telegraph_intelligence['request_id']}"
+            )
+
+            print(
+                f"Routes: "
+                f"{list(telegraph_intelligence['routes'].keys())}"
+            )
+
+            print(
+                "Settlement decision: "
+                "NOT MADE BY TELEGRAPH"
+            )
+
+    except (FileNotFoundError, ValueError) as exc:
+
+        print()
+        print("=== TELEGRAPH INTELLIGENCE ===")
+
+        print(
+            "Status: UNAVAILABLE"
+        )
+
+        print(
+            f"Reason: {exc}"
+        )
+
+    # ============================================================
+    # NORMALIZED ROUTE INPUT
+    # ============================================================
+
+    normalized_routes = get_normalized_routes()
+
+    # ============================================================
+    # POLICY INTELLIGENCE
+    # ============================================================
+
+    policies = build_policy_intelligence(
+        jurisdiction=
+            regulatory_evidence["jurisdiction"],
     )
 
-    telegraph_intelligence = (
-        telegraph_decision_input.get(
-            "telegraph_intelligence"
+    # ============================================================
+    # PHASE E.4.3 — DECISION ENGINE
+    # ============================================================
+
+    engine = DecisionEngine(
+        max_risk=MAX_RISK,
+    )
+
+    decision_input = build_telegraph_decision_input(
+        intelligence={
+            "asset": economic["asset"],
+            "network": economic["network"],
+            "chain_id": economic["chain_id"],
+            "status": economic["status"],
+            "confidence": economic["confidence"],
+            "value_usd": economic[
+                "user_transaction_value_usd"
+            ],
+            "network_cost_usd": economic[
+                "network_cost_usd"
+            ],
+            "market_price_usd": economic[
+                "eth_price_usd"
+            ],
+        },
+        regulatory_evidence=
+            regulatory_evidence,
+        payment_intent=
+            payment_intent,
+    )
+
+    result = engine.decide(
+        decision_input=
+            decision_input,
+
+        normalized_routes=
+            normalized_routes,
+
+        policies=
+            policies,
+
+        regulatory_state=
+            regulatory_state,
+
+        regulatory_evidence=
+            regulatory_evidence,
+    )
+
+    decisions = result["decisions"]
+
+    ranked_routes = result["ranked_routes"]
+
+    recommendation = result["recommendation"]
+
+    recommendation_reason = (
+        result["recommendation_reason"]
+    )
+
+    # ============================================================
+    # DECISION EXPLANATIONS
+    # ============================================================
+
+    for decision in decisions:
+
+        decision["explanation"] = (
+            build_decision_explanation(
+                decision
+            )
+        )
+
+    # ============================================================
+    # SETTLEMENT DECISION
+    # ============================================================
+
+    print()
+    print("=== SETTLEMENT DECISION ===")
+
+    print()
+    print("Route decisions:")
+
+    for decision in decisions:
+
+        route = decision["route"]
+
+        print(
+            f"{route['route']} | "
+            f"{decision['status']}"
+        )
+
+        if decision["reason"]:
+
+            print(
+                f"  Reason: "
+                f"{decision['reason']}"
+            )
+
+        if "evidence" in decision:
+
+            evidence = decision["evidence"]
+
+            print(
+                f"  Evidence source: "
+                f"{evidence['source']}"
+            )
+
+            print(
+                f"  Evidence type: "
+                f"{evidence['source_type']}"
+            )
+
+            print(
+                f"  Evidence confidence: "
+                f"{evidence['confidence']}"
+            )
+
+    # ============================================================
+    # DATA PROVENANCE
+    # ============================================================
+
+    print()
+    print("=== DATA PROVENANCE ===")
+
+    print(
+        f"Economic input: "
+        f"{economic['status']}"
+    )
+
+    print(
+        f"Economic source: "
+        f"{economic['source']}"
+    )
+
+    print(
+        "Route network data: "
+        "REAL"
+    )
+
+    print(
+        "Route risk: "
+        "TEST"
+    )
+
+    print(
+        "Compliance: "
+        "REFERENCE"
+    )
+
+    print(
+        "Geopolitical: "
+        "REFERENCE"
+    )
+
+    print(
+        f"Regulatory evidence: "
+        f"{regulatory_evidence['source_type']}"
+    )
+
+    print(
+        "Settlement path evidence: "
+        "DISCOVERY"
+    )
+
+    # ============================================================
+    # BUILD AUDIT RECORD
+    # ============================================================
+
+    audit = build_settlement_audit(
+        payment_intent=payment_intent,
+
+        economic=economic,
+
+        economic_status=
+            economic_status,
+
+        economic_reason=
+            economic_reason,
+
+        regulatory_evidence=
+            regulatory_evidence,
+
+        regulatory_state=
+            regulatory_state,
+
+        decisions=
+            decisions,
+
+        ranked_routes=
+            ranked_routes,
+
+        recommendation=
+            recommendation,
+
+        recommendation_reason=
+            recommendation_reason,
+
+        telegraph_intelligence=
+            telegraph_intelligence,
+
+        settlement_path=
+            settlement_path,
+    )
+
+    # ============================================================
+    # WRITE AUDIT FILE
+    # ============================================================
+
+    with open(
+        AUDIT_FILE,
+        "w",
+        encoding="utf-8",
+    ) as file:
+
+        json.dump(
+            audit,
+            file,
+            indent=4,
+        )
+
+    print()
+    print("=== AUDIT ===")
+
+    print(
+        f"Audit file: "
+        f"{AUDIT_FILE}"
+    )
+
+    print(
+        "Audit version: "
+        "9.9"
+    )
+
+    print(
+        "Status: "
+        "WRITTEN"
+    )
+
+    return {
+        "payment_intent":
+            payment_intent,
+
+        "economic":
+            economic,
+
+        "economic_status":
+            economic_status,
+
+        "economic_reason":
+            economic_reason,
+
+        "settlement_path":
+            settlement_path,
+
+        "regulatory_evidence":
+            regulatory_evidence,
+
+        "regulatory_state":
+            regulatory_state,
+
+        "telegraph_intelligence":
+            telegraph_intelligence,
+
+        "decisions":
+            decisions,
+
+        "ranked_routes":
+            ranked_routes,
+
+        "recommendation":
+            recommendation,
+
+        "recommendation_reason":
+            recommendation_reason,
+
+        "audit":
+            audit,
+    }
+
+
+# ============================================================
+# CONTROLLED USER / BUSINESS DEMO
+# ============================================================
+
+if __name__ == "__main__":
+
+    from user_business_input import (
+        build_user_business_input,
+        validate_user_business_input,
+    )
+
+    user_business_input = build_user_business_input(
+        amount=1000,
+        source_currency="USD",
+        destination_currency="USD",
+        counterparty="Brazilian supplier",
+        source_jurisdiction="India",
+        destination_jurisdiction="Brazil",
+        constraints={
+            "purpose": "import_payment",
+        },
+    )
+
+    payment_intent = (
+        validate_user_business_input(
+            user_business_input
         )
     )
 
     print()
-    print("=== TELEGRAPH INTELLIGENCE ===")
+    print("=== USER / BUSINESS REQUEST ===")
 
-    if telegraph_intelligence is not None:
+    print(
+        "Amount: "
+        "$1,000"
+    )
 
-        print(
-            f"Request ID: "
-            f"{telegraph_intelligence['request_id']}"
-        )
+    print(
+        "Source jurisdiction: "
+        "India"
+    )
 
-        print(
-            f"Routes: "
-            f"{list(telegraph_intelligence['routes'].keys())}"
-        )
+    print(
+        "Destination jurisdiction: "
+        "Brazil"
+    )
 
-        print(
-            "Settlement decision: "
-            "NOT MADE BY TELEGRAPH"
-        )
+    print(
+        "Counterparty: "
+        "Brazilian supplier"
+    )
 
-except (FileNotFoundError, ValueError) as exc:
+    print(
+        "Purpose: "
+        "import_payment"
+    )
+
+    run_settlement(payment_intent)
 
     print()
-    print("=== TELEGRAPH INTELLIGENCE ===")
-
-    print(
-        "Status: UNAVAILABLE"
-    )
-
-    print(
-        f"Reason: {exc}"
-    )
-
-
-# ============================================================
-# NORMALIZED ROUTE INPUT
-# ============================================================
-
-normalized_routes = get_normalized_routes()
-
-
-# ============================================================
-# POLICY INTELLIGENCE
-# ============================================================
-
-policies = build_policy_intelligence(
-    jurisdiction=
-        regulatory_evidence["jurisdiction"],
-)
-
-# ============================================================
-# PHASE E.4.3 — DECISION ENGINE
-# ============================================================
-
-engine = DecisionEngine(
-    max_risk=MAX_RISK,
-)
-
-decision_input = build_telegraph_decision_input(
-    intelligence={
-        "asset": economic["asset"],
-        "network": economic["network"],
-        "chain_id": economic["chain_id"],
-        "status": economic["status"],
-        "confidence": economic["confidence"],
-        "value_usd": economic[
-            "transaction_value_usd"
-        ],
-        "network_cost_usd": economic[
-            "network_cost_usd"
-        ],
-        "market_price_usd": economic[
-            "eth_price_usd"
-        ],
-    },
-    regulatory_evidence=
-        regulatory_evidence,
-
-    payment_intent=
-        payment_intent,
-)
-
-result = engine.decide(
-    decision_input=
-        decision_input,
-
-    normalized_routes=
-        normalized_routes,
-
-    policies=
-        policies,
-
-    regulatory_state=
-        regulatory_state,
-
-    regulatory_evidence=
-        regulatory_evidence,
-)
-
-decisions = result["decisions"]
-
-ranked_routes = result["ranked_routes"]
-
-recommendation = result["recommendation"]
-
-recommendation_reason = (
-    result["recommendation_reason"]
-)
-
-
-
-# ============================================================
-# DECISION EXPLANATIONS
-# ============================================================
-
-for decision in decisions:
-
-    decision["explanation"] = (
-        build_decision_explanation(
-            decision
-        )
-    )
-
-
-# ============================================================
-# SETTLEMENT DECISION
-# ============================================================
-
-print()
-print("=== SETTLEMENT DECISION ===")
-
-print()
-print("Route decisions:")
-
-
-for decision in decisions:
-
-    route = decision["route"]
-
-    print(
-        f"{route['route']} | "
-        f"{decision['status']}"
-    )
-
-    if decision["reason"]:
-
-        print(
-            f"  Reason: "
-            f"{decision['reason']}"
-        )
-
-    if "evidence" in decision:
-
-        evidence = decision["evidence"]
-
-        print(
-            f"  Evidence source: "
-            f"{evidence['source']}"
-        )
-
-        print(
-            f"  Evidence type: "
-            f"{evidence['source_type']}"
-        )
-
-        print(
-            f"  Evidence confidence: "
-            f"{evidence['confidence']}"
-        )
-
-
-# ============================================================
-# DATA PROVENANCE
-# ============================================================
-
-print()
-print("=== DATA PROVENANCE ===")
-
-print(
-    f"Economic input: "
-    f"{economic['status']}"
-)
-
-print(
-    f"Economic source: "
-    f"{economic['source']}"
-)
-
-print(
-    "Route network data: "
-    "REAL"
-)
-
-print(
-    "Route risk: "
-    "TEST"
-)
-
-print(
-    "Compliance: "
-    "REFERENCE"
-)
-
-print(
-    "Geopolitical: "
-    "REFERENCE"
-)
-
-print(
-    f"Regulatory evidence: "
-    f"{regulatory_evidence['source_type']}"
-)
-
-
-# ============================================================
-# BUILD AUDIT RECORD
-# ============================================================
-
-audit = build_settlement_audit(
-    economic=economic,
-
-    economic_status=
-        economic_status,
-
-    economic_reason=
-        economic_reason,
-
-    regulatory_evidence=
-        regulatory_evidence,
-
-    regulatory_state=
-        regulatory_state,
-
-    decisions=
-        decisions,
-
-    ranked_routes=
-        ranked_routes,
-
-    recommendation=
-        recommendation,
-
-    recommendation_reason=
-        recommendation_reason,
-
-    telegraph_intelligence=
-        telegraph_intelligence,
-)
-
-
-# ============================================================
-# WRITE AUDIT FILE
-# ============================================================
-
-with open(
-    AUDIT_FILE,
-    "w",
-    encoding="utf-8",
-) as file:
-
-    json.dump(
-        audit,
-        file,
-        indent=4,
-    )
-
-
-print()
-print("=== AUDIT ===")
-
-print(
-    f"Audit file: "
-    f"{AUDIT_FILE}"
-)
-
-print(
-    "Audit version: "
-    "9.9"
-)
-
-print(
-    "Status: "
-    "WRITTEN"
-)

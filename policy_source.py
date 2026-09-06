@@ -1,6 +1,10 @@
 from data_provenance import add_provenance
 
 
+# ============================================================
+# COMPLIANCE POLICY
+# ============================================================
+
 def get_bitcoin_compliance_policy():
 
     return add_provenance(
@@ -20,6 +24,10 @@ def get_base_compliance_policy():
         0.7,
     )
 
+
+# ============================================================
+# GEOPOLITICAL POLICY
+# ============================================================
 
 def get_bitcoin_geopolitical_policy():
 
@@ -41,22 +49,52 @@ def get_base_geopolitical_policy():
     )
 
 
-def build_policy_source_data(jurisdiction=None):
+# ============================================================
+# POLICY SOURCE DATA
+# ============================================================
+
+def build_policy_source_data(
+    jurisdiction=None,
+):
+    """
+    Build provider-independent policy source data.
+
+    Jurisdiction is intentionally accepted here so that
+    jurisdiction-specific policy evidence can be introduced
+    without changing the DecisionEngine contract.
+
+    Until validated jurisdiction-specific evidence exists,
+    compliance remains conservative.
+
+    This function does NOT:
+        - make a settlement decision
+        - recommend a route
+        - infer regulatory approval
+        - convert reference material into ALLOWED status
+    """
 
     return {
         "Bitcoin": {
-            "compliance": get_bitcoin_compliance_policy(),
+            "compliance":
+                get_bitcoin_compliance_policy(),
+
             "geopolitical_status":
                 get_bitcoin_geopolitical_policy(),
         },
 
         "Base": {
-            "compliance": get_base_compliance_policy(),
+            "compliance":
+                get_base_compliance_policy(),
+
             "geopolitical_status":
                 get_base_geopolitical_policy(),
         },
     }
 
+
+# ============================================================
+# MAIN
+# ============================================================
 
 if __name__ == "__main__":
 

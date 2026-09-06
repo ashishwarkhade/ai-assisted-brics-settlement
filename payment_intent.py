@@ -29,12 +29,18 @@ def build_payment_intent(
     max_settlement_time=None,
     risk_tolerance=None,
     constraints=None,
+    source_jurisdiction=None,
+    destination_jurisdiction=None,
 ):
     """
     Build the canonical payment intent.
 
     PaymentIntent describes what the user wants to accomplish.
     It does not recommend a settlement route.
+
+    Jurisdiction fields describe the requested payment corridor.
+    They are inputs to downstream intelligence and decision logic;
+    they do not constitute regulatory approval.
     """
 
     intent = {
@@ -48,6 +54,11 @@ def build_payment_intent(
 
         "counterparty": {
             "identifier": counterparty,
+        },
+
+        "corridor": {
+            "source_jurisdiction": source_jurisdiction,
+            "destination_jurisdiction": destination_jurisdiction,
         },
 
         "settlement_preferences": {
@@ -152,10 +163,12 @@ def validate_payment_intent(intent):
 if __name__ == "__main__":
 
     intent = build_payment_intent(
-        amount=50000,
+        amount=1000,
         source_currency="USD",
         destination_currency="USD",
         counterparty="counterparty-A",
+        source_jurisdiction="India",
+        destination_jurisdiction="Brazil",
     )
 
     intent = validate_payment_intent(intent)

@@ -1,12 +1,47 @@
 {
     "audit_version": "9.9",
-    "generated_at_utc": "2026-08-30T08:50:29.403579+00:00",
+    "payment_intent": {
+        "intent_id": "b60779c5-fd0f-4b21-a2a4-1fe54b18f125",
+        "transaction": {
+            "amount": 1000,
+            "source_currency": "USD",
+            "destination_currency": "USD"
+        },
+        "counterparty": {
+            "identifier": "Brazilian supplier"
+        },
+        "corridor": {
+            "source_jurisdiction": "India",
+            "destination_jurisdiction": "Brazil"
+        },
+        "settlement_preferences": {
+            "asset": null,
+            "network": null,
+            "max_cost": null,
+            "max_settlement_time": null
+        },
+        "risk_constraints": {
+            "risk_tolerance": null
+        },
+        "constraints": {
+            "purpose": "import_payment"
+        },
+        "metadata": {
+            "created_at": "2026-09-06T05:04:32.023598+00:00",
+            "status": "VALIDATED"
+        }
+    },
+    "generated_at_utc": "2026-09-06T05:04:34.484716+00:00",
     "economic": {
-        "transaction_value_usd": 124.97222500000001,
-        "network_cost_usd": 0.000841349966519804,
+        "user_transaction_value_usd": 1000,
+        "observed_transaction_value_usd": 127.427641,
+        "network_cost_usd": 0.000857880552971251,
         "status": "REAL",
         "source": "Base RPC + CoinGecko",
-        "confidence": 1.0
+        "confidence": 1.0,
+        "user_transaction_amount": 1000,
+        "user_transaction_currency": "USD",
+        "observed_transaction_value_eth": 0.0509
     },
     "economic_gate": {
         "status": "PASSED",
@@ -16,12 +51,21 @@
         "jurisdiction": "India",
         "asset": "ETH",
         "activity": "CROSS_BORDER_PAYMENT",
-        "status": "PERMITTED",
-        "regulatory_state": "PERMITTED",
-        "source": "TEST",
-        "source_type": "REFERENCE",
-        "confidence": 1.0,
-        "evidence_text": "Test permitted regulatory evidence"
+        "status": "UNKNOWN",
+        "regulatory_state": "UNKNOWN",
+        "source": "UNAVAILABLE",
+        "source_type": "UNKNOWN",
+        "confidence": 0.0,
+        "evidence_text": "No jurisdiction-specific validated regulatory evidence has been supplied for this corridor."
+    },
+    "settlement_path": {
+        "source_jurisdiction": "India",
+        "destination_jurisdiction": "Brazil",
+        "infrastructure": "UPI",
+        "asset": "ETH",
+        "regulatory_status": "UNKNOWN",
+        "linkage_status": "UNKNOWN",
+        "cross_border_status": "UNKNOWN"
     },
     "route_decisions": [
         {
@@ -29,26 +73,34 @@
             "asset": "BTC",
             "network": "Bitcoin",
             "status": "ELIGIBLE_DATA_INCOMPLETE",
-            "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+            "reason": "REGULATORY_STATUS_UNKNOWN",
             "evidence": {
-                "source": "FATF",
-                "source_type": "REFERENCE",
-                "confidence": 0.7,
-                "value": "REQUIRES_JURISDICTION_REVIEW"
+                "source": "UNAVAILABLE",
+                "source_type": "UNKNOWN",
+                "confidence": 0.0,
+                "jurisdiction": "India",
+                "asset": "ETH",
+                "activity": "CROSS_BORDER_PAYMENT",
+                "status": "UNKNOWN",
+                "evidence_text": "No jurisdiction-specific validated regulatory evidence has been supplied for this corridor."
             },
             "explanation": {
                 "route": "Bitcoin",
                 "asset": "BTC",
                 "network": "Bitcoin",
                 "status": "ELIGIBLE_DATA_INCOMPLETE",
-                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "reason": "REGULATORY_STATUS_UNKNOWN",
                 "evidence": {
-                    "source": "FATF",
-                    "source_type": "REFERENCE",
-                    "confidence": 0.7,
-                    "value": "REQUIRES_JURISDICTION_REVIEW"
+                    "source": "UNAVAILABLE",
+                    "source_type": "UNKNOWN",
+                    "confidence": 0.0,
+                    "jurisdiction": "India",
+                    "asset": "ETH",
+                    "activity": "CROSS_BORDER_PAYMENT",
+                    "regulatory_status": "UNKNOWN",
+                    "evidence_text": "No jurisdiction-specific validated regulatory evidence has been supplied for this corridor."
                 },
-                "text": "Route Bitcoin (BTC / Bitcoin) is ELIGIBLE_DATA_INCOMPLETE. Evidence value: REQUIRES_JURISDICTION_REVIEW. Evidence source: FATF. Decision reason: COMPLIANCE_REQUIRES_JURISDICTION_REVIEW."
+                "text": "Route Bitcoin (BTC / Bitcoin) is ELIGIBLE_DATA_INCOMPLETE because regulatory status for BTC in India for activity CROSS_BORDER_PAYMENT is UNKNOWN. Evidence source: UNAVAILABLE. Decision reason: REGULATORY_STATUS_UNKNOWN."
             }
         },
         {
@@ -56,26 +108,34 @@
             "asset": "ETH",
             "network": "Base",
             "status": "ELIGIBLE_DATA_INCOMPLETE",
-            "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+            "reason": "REGULATORY_STATUS_UNKNOWN",
             "evidence": {
-                "source": "FATF",
-                "source_type": "REFERENCE",
-                "confidence": 0.7,
-                "value": "REQUIRES_JURISDICTION_REVIEW"
+                "source": "UNAVAILABLE",
+                "source_type": "UNKNOWN",
+                "confidence": 0.0,
+                "jurisdiction": "India",
+                "asset": "ETH",
+                "activity": "CROSS_BORDER_PAYMENT",
+                "status": "UNKNOWN",
+                "evidence_text": "No jurisdiction-specific validated regulatory evidence has been supplied for this corridor."
             },
             "explanation": {
                 "route": "Base",
                 "asset": "ETH",
                 "network": "Base",
                 "status": "ELIGIBLE_DATA_INCOMPLETE",
-                "reason": "COMPLIANCE_REQUIRES_JURISDICTION_REVIEW",
+                "reason": "REGULATORY_STATUS_UNKNOWN",
                 "evidence": {
-                    "source": "FATF",
-                    "source_type": "REFERENCE",
-                    "confidence": 0.7,
-                    "value": "REQUIRES_JURISDICTION_REVIEW"
+                    "source": "UNAVAILABLE",
+                    "source_type": "UNKNOWN",
+                    "confidence": 0.0,
+                    "jurisdiction": "India",
+                    "asset": "ETH",
+                    "activity": "CROSS_BORDER_PAYMENT",
+                    "regulatory_status": "UNKNOWN",
+                    "evidence_text": "No jurisdiction-specific validated regulatory evidence has been supplied for this corridor."
                 },
-                "text": "Route Base (ETH / Base) is ELIGIBLE_DATA_INCOMPLETE. Evidence value: REQUIRES_JURISDICTION_REVIEW. Evidence source: FATF. Decision reason: COMPLIANCE_REQUIRES_JURISDICTION_REVIEW."
+                "text": "Route Base (ETH / Base) is ELIGIBLE_DATA_INCOMPLETE because regulatory status for ETH in India for activity CROSS_BORDER_PAYMENT is UNKNOWN. Evidence source: UNAVAILABLE. Decision reason: REGULATORY_STATUS_UNKNOWN."
             }
         }
     ],
@@ -593,7 +653,8 @@
         "route_risk": "TEST",
         "compliance": "REFERENCE",
         "geopolitical": "REFERENCE",
-        "regulatory": "REFERENCE",
-        "telegraph": "AVAILABLE"
+        "regulatory": "UNKNOWN",
+        "telegraph": "AVAILABLE",
+        "settlement_path": "DISCOVERY"
     }
 }
